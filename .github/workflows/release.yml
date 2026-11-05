@@ -1,20 +1,29 @@
 name: Release
 
-# Publishing a GitHub release tagged vX.Y.Z publishes tagsets, tagsets-react
-# and tagsets-vue at X.Y.Z to npm, through npm trusted publishing: npm trusts
-# this workflow file in componext/tagsets (running in the `npm` environment),
-# so there is no npm token to store or rotate, and every version gets a
-# provenance statement. A prerelease publishes under the `next` dist-tag.
+# Publishing a GitHub release tagged vX.Y.Z publishes xymbols, xymbols-react,
+# xymbols-vue and xymbols-react-native at X.Y.Z to npm, through npm trusted
+# publishing: npm trusts this workflow file in componext/xymbols (running in
+# the `npm` environment), so there is no npm token to store or rotate, and
+# every version gets a provenance statement. A prerelease (or a tag with a
+# `-`) publishes under the `next` dist-tag.
+#
+# The version comes from the tag: the repository keeps the packages at 0.0.0.
+# release-upstream.yml dispatches this workflow with the tag it created.
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v0.2.0
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: release
+  group: publish
   cancel-in-progress: false
 
 jobs:
@@ -25,8 +34,12 @@ jobs:
     permissions:
       contents: read
       id-token: write # the OIDC token npm trusted publishing exchanges for a publish credential
+    env:
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: pnpm/action-setup@v6
 
@@ -39,20 +52,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Versions match the release tag
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: pnpm versions check "$TAG"
+      - name: Version from the tag
+        run: |
+          case "$TAG" in v[0-9]*) ;; *) echo "::error::$TAG is not a vX.Y.Z tag"; exit 1 ;; esac
+          pnpm versions set "${TAG#v}"
+          pnpm versions check "$TAG"
 
       - name: Build, typecheck, test
         run: pnpm check
 
       - name: Publish
         env:
-          DIST_TAG: ${{ github.event.release.prerelease && 'next' || 'latest' }}
+          DIST_TAG: ${{ (github.event.release.prerelease || contains(env.TAG, '-')) && 'next' || 'latest' }}
         run: |
           echo "npm $(npm --version)" # trusted publishing needs npm 11.5.1 or later
-          for dir in vanilla react vue; do
+          for dir in vanilla react vue react-native; do
             cd "packages/$dir"
             name=$(node -p "require('./package.json').name")
             version=$(node -p "require('./package.json').version")

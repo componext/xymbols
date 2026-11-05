@@ -36,7 +36,7 @@ export function tileSvg(g: Glyph, v: Variant = g.fixed ?? g.hug): string {
 
   return [
     `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
-    `<!-- tagsets ${k}: ${g.meta.label} -->`,
+    `<!-- xymbols ${k}: ${g.meta.label} -->`,
     `<rect width="${SIZE}" height="${SIZE}" fill="url(#bg-${k})"/>`,
     `<rect width="${SIZE}" height="${SIZE}" fill="url(#dots-${k})" opacity=".14"/>`,
     shape && `<g transform="${at(0)}" fill="url(#inside-${k})" opacity=".55">${shape}</g>`,

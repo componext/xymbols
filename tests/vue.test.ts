@@ -2,21 +2,21 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import { LicenseLgpl, LicenseMit, LocaleEn, MathTimes, PosNoun, TechJson } from 'tagsets-vue';
-import { TagGlyph, getGlyph } from 'tagsets-vue/dynamic';
+import { LicenseLgpl, LicenseMit, LocaleEn, MathTimes, PosNoun, TechJson } from 'xymbols-vue';
+import { TagGlyph, getGlyph } from 'xymbols-vue/dynamic';
 
 const render = (render: () => ReturnType<typeof h>) => renderToString(createSSRApp({ render }));
 
 test('a glyph renders with Lucide defaults and is decorative without a title', async () => {
   const html = await render(() => h(LocaleEn));
-  assert.match(html, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tagsets tagsets-locale-en" aria-hidden="true">/);
+  assert.match(html, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="xymbol xymbol-locale-en" aria-hidden="true">/);
   assert.equal(html.match(/<path /g)?.length, 2);
   assert.equal(LicenseMit.displayName, 'LicenseMit');
 });
 
 test('fit picks the square or the hugging width; size is the height', async () => {
   assert.match(await render(() => h(PosNoun)), /width="24" height="24" viewBox="0 0 24 24"/);
-  assert.match(await render(() => h(PosNoun, { fit: 'hug', size: 12 })), /width="24" height="12" viewBox="0 0 48 24".*tagsets-hug/);
+  assert.match(await render(() => h(PosNoun, { fit: 'hug', size: 12 })), /width="24" height="12" viewBox="0 0 48 24".*xymbol-hug/);
   assert.match(await render(() => h(LicenseLgpl)), /width="48" height="24"/, 'no fixed form: falls back to hug');
   assert.equal(LicenseMit.fixed, null);
   assert.match(await render(() => h(MathTimes, { fit: 'hug' })), /width="14" height="24" viewBox="5 0 14 24"/);
@@ -26,7 +26,7 @@ test('props apply, kebab-case included, and extra attributes fall through', asyn
   const html = await render(() => h(TechJson, { size: 16, color: 'red', 'stroke-width': 1.5, class: 'x', 'data-k': 'v' }));
   assert.match(html, /height="16"/);
   assert.match(html, /stroke="red" stroke-width="1\.5"/);
-  assert.match(html, /class="tagsets tagsets-tech-json tagsets-hug x"/);
+  assert.match(html, /class="xymbol xymbol-tech-json xymbol-hug x"/);
   assert.match(html, /data-k="v"/);
 });
 
@@ -45,7 +45,7 @@ test('a title or aria-label makes it an image with a name', async () => {
 test('TagGlyph renders the glyph for a code, titled with its label, or its fallback slot', async () => {
   assert.equal(getGlyph('pos', 'VBZ')?.meta.component, 'PosVerb');
   const html = await render(() => h(TagGlyph, { tagset: 'licenses', code: 'Apache-2.0', size: 20, fit: 'hug', class: 'y' }));
-  assert.match(html, /tagsets-license-apache tagsets-hug y/);
+  assert.match(html, /xymbol-license-apache xymbol-hug y/);
   assert.match(html, /height="20"/);
   assert.match(html, /<title>Apache License<\/title>/);
   const fallback = await render(() => h(TagGlyph, { tagset: 'licenses', code: 'WTFPL' }, { fallback: () => 'none' }));

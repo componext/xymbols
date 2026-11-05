@@ -13,22 +13,22 @@
 import svgpath from 'svgpath';
 import type { Node } from './source.ts';
 
-type Pt = readonly [number, number];
+export type Pt = readonly [number, number];
 
 const STEP = 0.05;
 /** Centreline distance below which two strokes count as joined. */
-const JOINED = 0.25;
+export const JOINED = 0.25;
 /** Slack for arc-to-curve approximation: a design at exactly 1px or 2px passes. */
 const SLACK = 0.02;
 
-function line(out: Pt[], [x0, y0]: Pt, [x1, y1]: Pt) {
-  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / STEP));
+function line(out: Pt[], [x0, y0]: Pt, [x1, y1]: Pt, step: number) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / step));
   for (let i = 1; i <= n; i++) out.push([x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]);
 }
 
-function cubic(out: Pt[], p0: Pt, p1: Pt, p2: Pt, p3: Pt) {
+function cubic(out: Pt[], p0: Pt, p1: Pt, p2: Pt, p3: Pt, step: number) {
   const length = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) + Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) + Math.hypot(p3[0] - p2[0], p3[1] - p2[1]);
-  const n = Math.max(1, Math.ceil(length / STEP));
+  const n = Math.max(1, Math.ceil(length / step));
   for (let i = 1; i <= n; i++) {
     const t = i / n;
     const u = 1 - t;
@@ -39,8 +39,8 @@ function cubic(out: Pt[], p0: Pt, p1: Pt, p2: Pt, p3: Pt) {
   }
 }
 
-/** Points along each subpath of a path, every STEP units or closer. */
-function samplePath(d: string): Pt[][] {
+/** Points along each subpath of a path, every `step` units or closer. */
+export function samplePath(d: string, step = STEP): Pt[][] {
   const runs: Pt[][] = [];
   let run: Pt[] = [];
   let start: Pt = [0, 0];
@@ -55,19 +55,19 @@ function samplePath(d: string): Pt[][] {
         if (run.length) runs.push(run);
         start = [v[0]!, v[1]!];
         run = [start];
-      } else if (cmd === 'L') line(run, at, [v[0]!, v[1]!]);
-      else if (cmd === 'H') line(run, at, [v[0]!, y]);
-      else if (cmd === 'V') line(run, at, [x, v[0]!]);
-      else if (cmd === 'C') cubic(run, at, [v[0]!, v[1]!], [v[2]!, v[3]!], [v[4]!, v[5]!]);
-      else if (cmd === 'Q') cubic(run, at, [x + (2 / 3) * (v[0]! - x), y + (2 / 3) * (v[1]! - y)], [v[2]! + (2 / 3) * (v[0]! - v[2]!), v[3]! + (2 / 3) * (v[1]! - v[3]!)], [v[2]!, v[3]!]);
-      else if (cmd === 'Z' || cmd === 'z') line(run, at, start);
+      } else if (cmd === 'L') line(run, at, [v[0]!, v[1]!], step);
+      else if (cmd === 'H') line(run, at, [v[0]!, y], step);
+      else if (cmd === 'V') line(run, at, [x, v[0]!], step);
+      else if (cmd === 'C') cubic(run, at, [v[0]!, v[1]!], [v[2]!, v[3]!], [v[4]!, v[5]!], step);
+      else if (cmd === 'Q') cubic(run, at, [x + (2 / 3) * (v[0]! - x), y + (2 / 3) * (v[1]! - y)], [v[2]! + (2 / 3) * (v[0]! - v[2]!), v[3]! + (2 / 3) * (v[1]! - v[3]!)], [v[2]!, v[3]!], step);
+      else if (cmd === 'Z' || cmd === 'z') line(run, at, start, step);
     });
   if (run.length) runs.push(run);
   return runs;
 }
 
 /** The element as a path, so every shape is sampled one way. */
-function toPath([tag, a]: Node): string {
+export function toPath([tag, a]: Node): string {
   const n = (k: string) => Number(a[k] ?? 0);
   switch (tag) {
     case 'path':

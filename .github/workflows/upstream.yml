@@ -1,0 +1,64 @@
+name: Upstream report
+
+# On every pull request: build, compare with the latest xymbols on npm, and
+# post what changes (scripts/report.ts). A Dependabot update of the Lucide
+# group that breaks nothing is set to merge itself once CI passes; the daily
+# release (release-upstream.yml) then publishes it.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # gh pr merge --auto
+      pull-requests: write # the report comment
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.html_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The generator alone writes the manifest the report reads; the packages need not compile.
+      - run: node scripts/build.ts
+
+      - run: node scripts/report.ts --markdown report.md --json report.json
+
+      - run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment
+        # Forks get a read-only token; the job summary still has the report.
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: gh pr comment "$PR" --body-file report.md --edit-last --create-if-none
+
+      - name: Metadata
+        id: meta
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Merge a Lucide update that breaks nothing
+        if: steps.meta.outputs.dependency-group == 'lucide'
+        run: |
+          if node -e 'process.exit(require("./report.json").breaking ? 1 : 0)'; then
+            gh pr merge "$PR" --auto --squash
+          else
+            echo "The update removes importable names; leaving it for review."
+          fi

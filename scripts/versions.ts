@@ -1,16 +1,18 @@
 /**
- * The published packages (tagsets, tagsets-react, tagsets-vue) release in
- * lockstep: one version for all three.
+ * The published packages (xymbols, xymbols-react, xymbols-vue and
+ * xymbols-react-native) release in lockstep: one version for all four. The
+ * repository keeps them at 0.0.0; the release workflow sets the version from
+ * the tag it publishes, so no release needs a version-bump commit.
  *
- *   node scripts/versions.ts check            all three share one version
+ *   node scripts/versions.ts check            all four share one version
  *   node scripts/versions.ts check v0.2.0     ... and it matches this tag
- *   node scripts/versions.ts set 0.2.0        set it in all three
+ *   node scripts/versions.ts set 0.2.0        set it in all four
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './lib/source.ts';
 
-const PACKAGES = ['vanilla', 'react', 'vue'].map((dir) => join(ROOT, 'packages', dir, 'package.json'));
+const PACKAGES = ['vanilla', 'react', 'vue', 'react-native'].map((dir) => join(ROOT, 'packages', dir, 'package.json'));
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 const read = (file: string) => JSON.parse(readFileSync(file, 'utf8')) as { name: string; version: string };

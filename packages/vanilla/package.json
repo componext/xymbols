@@ -1,29 +1,33 @@
 {
-  "name": "tagsets",
-  "version": "0.4.0",
-  "description": "Tagsets: glyphs for standardized metadata codes (licenses, locales, part-of-speech tags, tech abbreviations, keys, math) on Lucide's 24px stroke grid. Glyph data and a string/DOM API, plus optimized SVGs in fixed and hug widths, sprites, 72px tiles and a manifest.",
+  "name": "xymbols",
+  "version": "0.0.0",
   "license": "ISC",
-  "homepage": "https://github.com/componext/tagsets#readme",
+  "homepage": "https://github.com/componext/xymbols#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/componext/tagsets.git",
+    "url": "git+https://github.com/componext/xymbols.git",
     "directory": "packages/vanilla"
   },
   "bugs": {
-    "url": "https://github.com/componext/tagsets/issues"
+    "url": "https://github.com/componext/xymbols/issues"
   },
   "type": "module",
   "sideEffects": false,
+  "description": "xymbols without a framework: every Lucide icon and every tagsets glyph (licenses, locales, POS tags, tech, keys, math) as data, a drop-in for the lucide package (createIcons, createElement), SVG strings in nine weights, optimized SVGs, sprites, tiles and a manifest.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./icons/*": {
+      "types": "./dist/generated/icons/*.d.ts",
+      "default": "./dist/generated/icons/*.js"
+    },
     "./manifest.json": "./dist/manifest.json",
     "./sprite.svg": "./dist/sprite.svg",
+    "./sprite-hug.svg": "./dist/sprite-hug.svg",
     "./svg/*": "./dist/svg/*",
-    "./tiles/*": "./dist/tiles/*",
-    "./sprite-hug.svg": "./dist/sprite-hug.svg"
+    "./tiles/*": "./dist/tiles/*"
   },
   "files": [
     "dist",
@@ -31,15 +35,14 @@
   ],
   "keywords": [
     "icons",
-    "glyphs",
+    "symbols",
     "svg",
-    "sprite",
+    "lucide",
+    "weights",
     "spdx",
     "bcp47",
-    "universal-dependencies",
-    "lucide",
     "keyboard",
     "math",
-    "latex"
+    "sprite"
   ]
 }

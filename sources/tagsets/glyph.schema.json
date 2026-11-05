@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Tagsets glyph metadata",
+  "title": "xymbols tagsets glyph metadata",
   "description": "One per glyph. A glyph with `text` is composed from the stroke alphabet; a drawn `<name>.svg` beside it is the fixed (24x24) variant.",
   "type": "object",
   "required": [

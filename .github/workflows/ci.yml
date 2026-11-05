@@ -41,6 +41,6 @@ jobs:
 
       - name: Pack each package (dry run)
         run: |
-          for dir in vanilla react vue; do
+          for dir in vanilla react vue react-native; do
             (cd "packages/$dir" && npm pack --dry-run --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const [p]=JSON.parse(s);console.log(`${p.name}@${p.version}: ${p.entryCount} files, ${(p.size/1024).toFixed(0)}KB packed`)})')
           done

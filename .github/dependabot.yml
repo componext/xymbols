@@ -1,0 +1,38 @@
+# Upstreams xymbols follows. The Lucide packages move together (the compat
+# tests check one version across all five), and an update that breaks nothing
+# merges and releases itself: see upstream.yml and release-upstream.yml.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    versioning-strategy: increase
+    groups:
+      lucide:
+        patterns:
+          - lucide
+          - lucide-static
+          - lucide-react
+          - lucide-react-native
+          - "@lucide/vue"
+      tooling:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - lucide
+          - lucide-static
+          - lucide-react
+          - lucide-react-native
+          - "@lucide/vue"
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
