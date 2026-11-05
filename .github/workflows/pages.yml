@@ -32,6 +32,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The catalog's animations come from the build (the vanilla package's engine and data).
+      - run: pnpm build
+
       - run: pnpm preview
 
       - uses: actions/upload-pages-artifact@v4

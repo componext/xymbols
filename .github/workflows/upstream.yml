@@ -1,9 +1,10 @@
 name: Upstream report
 
 # On every pull request: build, compare with the latest xymbols on npm, and
-# post what changes (scripts/report.ts). A Dependabot update of the Lucide
-# group that breaks nothing is set to merge itself once CI passes; the daily
-# release (release-upstream.yml) then publishes it.
+# post what changes (scripts/report.ts). A Dependabot update of an upstream
+# (the Lucide group, the animations group, or the UNA submodule) that breaks
+# nothing is set to merge itself once CI passes; the daily release
+# (release-upstream.yml) then publishes it.
 
 on:
   pull_request:
@@ -54,8 +55,11 @@ jobs:
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: dependabot/fetch-metadata@v2
 
-      - name: Merge a Lucide update that breaks nothing
-        if: steps.meta.outputs.dependency-group == 'lucide'
+      - name: Merge an upstream update that breaks nothing
+        if: >-
+          steps.meta.outputs.dependency-group == 'lucide' ||
+          steps.meta.outputs.dependency-group == 'animations' ||
+          steps.meta.outputs.package-ecosystem == 'gitsubmodule'
         run: |
           if node -e 'process.exit(require("./report.json").breaking ? 1 : 0)'; then
             gh pr merge "$PR" --auto --squash

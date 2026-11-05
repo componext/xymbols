@@ -1,0 +1,5 @@
+[submodule "upstream/una"]
+	path = upstream/una
+	url = https://github.com/unacms/UNA.git
+	branch = master
+	shallow = true

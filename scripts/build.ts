@@ -7,14 +7,21 @@
  *    glyph's name or id collides with an icon's. Any problem stops the build.
  * 2. Optimize each tagsets variant with SVGO. Lucide's nodes ship as they are.
  * 3. Find how heavy each drawing can go (scripts/lib/weights.ts).
- * 4. Emit vanilla SVGs, sprites, tiles and manifest (packages/vanilla/dist),
+ * 4. Import the animations: UNA's specs from the upstream/una submodule
+ *    (scripts/lib/una.ts) and lucide-animated's from its installed bundle
+ *    (scripts/lib/lucide-animated.ts), both mapped onto Lucide's nodes. An
+ *    icon takes UNA's animation where there is one, else lucide-animated's.
+ * 5. Emit vanilla SVGs, sprites, tiles and manifest (packages/vanilla/dist),
  *    and generated TypeScript for vanilla, React, Vue and React Native
  *    (packages/<pkg>/src/generated). `pnpm build` then compiles them with tsc.
  */
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { ANIMATE_CSS } from './runtime-web/styles.ts';
 import { emitAll, iconExports, type Built, type BuiltIcon } from './lib/emit.ts';
+import { loadLucideAnimated } from './lib/lucide-animated.ts';
 import { loadIcons } from './lib/lucide.ts';
+import { loadUna } from './lib/una.ts';
 import { optimizeGlyph } from './lib/optimize.ts';
 import { ROOT, loadGlyphs, sourceSvg, type Variant } from './lib/source.ts';
 import { maxStroke } from './lib/weights.ts';
@@ -60,9 +67,25 @@ const built: Built[] = glyphs.map((glyph) => {
 });
 
 const weighed = performance.now();
-const icons: BuiltIcon[] = lucide.icons.map((icon) => {
-  const limit = maxStroke(icon.nodes);
-  return { icon, ...(limit === undefined ? {} : { maxStroke: limit }) };
+const weighted = lucide.icons.map((icon) => ({ icon, limit: maxStroke(icon.nodes) }));
+const weighing = Math.round(performance.now() - weighed);
+
+const animating = performance.now();
+const una = await loadUna(lucide.icons);
+const la = await loadLucideAnimated(lucide.icons);
+if (una.problems.length) {
+  for (const p of una.problems) console.error(`✗ ${p}`);
+  process.exit(1);
+}
+const unaBy = new Map(una.icons.map((u) => [u.icon.name, u]));
+const laBy = new Map(la.icons.map((l) => [l.icon.name, l]));
+const laNames = new Map(la.exports.map((e) => [e.icon.name, e.name]));
+const icons: BuiltIcon[] = weighted.map(({ icon, limit }) => {
+  const u = unaBy.get(icon.name);
+  const l = laBy.get(icon.name);
+  const own = u ? { motion: u.motion, motionSource: 'una' as const } : l ? { motion: l.motion, motionSource: 'lucide-animated' as const } : {};
+  const name = laNames.get(icon.name);
+  return { icon, ...(limit === undefined ? {} : { maxStroke: limit }), ...own, ...(name ? { lucideAnimated: { name, ...(l ? { motion: l.motion } : {}) } } : {}) };
 });
 
 // Start clean, buildinfo included: tsc -b keeps it beside tsconfig.json, and
@@ -72,11 +95,15 @@ for (const pkg of ['vanilla', 'react', 'vue', 'react-native']) {
 }
 
 const { version } = JSON.parse(readFileSync(join(ROOT, 'packages/vanilla/package.json'), 'utf8')) as { version: string };
-emitAll(tagsets, built, icons, { version, lucide: lucide.version });
+emitAll(tagsets, built, icons, { version, lucide: lucide.version, una: una.sha, lucideAnimated: la.version }, ANIMATE_CSS);
 
 const hugOnly = built.filter((b) => !b.fixed);
 const clamped = icons.filter((b) => b.maxStroke !== undefined);
 console.log(`built ${icons.length} Lucide ${lucide.version} icons (${icons.reduce((n, b) => n + b.icon.aliases.length, 0)} aliases) and ${built.length} glyphs in ${tagsets.length} tagsets (${tagsets.map((t) => `${t.id} ${glyphs.filter((g) => g.tagset === t).length}`).join(', ')})`);
-console.log(`weights: ${icons.length - clamped.length} icons take every weight, ${clamped.filter((b) => b.maxStroke === 2).length} stay at regular, the rest stop between (${Math.round(performance.now() - weighed)}ms)`);
+console.log(`weights: ${icons.length - clamped.length} icons take every weight, ${clamped.filter((b) => b.maxStroke === 2).length} stay at regular, the rest stop between (${weighing}ms)`);
+console.log(
+  `animations: ${icons.filter((b) => b.motion).length} icons have their own (UNA ${una.sha.slice(0, 10)}: ${una.icons.length}; lucide-animated ${la.version}: ${la.icons.length} of ${la.exports.length + la.skipped.filter((s) => s.includes('not a Lucide icon')).length}, ${la.icons.filter((l) => !unaBy.has(l.icon.name)).length} used) (${Math.round(performance.now() - animating)}ms)`,
+);
+for (const d of una.dropped) console.log(`  UNA ${d}`);
 console.log(`hug only (${hugOnly.length}): ${hugOnly.map((b) => b.glyph.id).join(', ')}`);
 console.log(`${cache.size} distinct glyph drawings optimized; done in ${Math.round(performance.now() - started)}ms`);

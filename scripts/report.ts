@@ -1,7 +1,8 @@
 /**
  * What this build changes against the latest published xymbols: icons and
  * glyphs added, removed or redrawn, aliases added or removed, weight limits
- * moved, and the Lucide version. CI posts it on pull requests, and the
+ * moved, animations added, changed or dropped (by upstream), and the Lucide,
+ * lucide-animated and UNA versions. CI posts it on pull requests, and the
  * scheduled release uses it to decide whether (and how) an upstream update
  * releases itself.
  *
@@ -11,7 +12,8 @@
  *
  * Run it after the build (it reads packages/vanilla/dist/manifest.json).
  * Breaking: a name someone may import is gone. Lucide keeps renamed icons as
- * aliases, so a rename alone is not breaking; a removed icon is.
+ * aliases, so a rename alone is not breaking; a removed icon is. An icon
+ * losing its own animation isn't: it still animates, with the generic effects.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -25,6 +27,7 @@ interface ManifestIcon {
   aliases?: string[];
   maxStroke?: number;
   geometry?: string;
+  animation?: { source: string; motion: string };
 }
 interface ManifestGlyph {
   id: string;
@@ -35,6 +38,7 @@ interface ManifestGlyph {
 interface Manifest {
   version: string;
   lucide?: string;
+  upstreams?: { una?: string; 'lucide-animated'?: string };
   icons?: ManifestIcon[];
   glyphs: ManifestGlyph[];
 }
@@ -42,6 +46,8 @@ interface Manifest {
 export interface Report {
   base: string;
   lucide: { from: string | null; to: string | null };
+  upstreams: { una: { from: string | null; to: string | null }; lucideAnimated: { from: string | null; to: string | null } };
+  animations: { added: string[]; changed: string[]; dropped: string[] };
   icons: { added: string[]; removed: string[]; redrawn: string[]; aliasesAdded: string[]; aliasesRemoved: string[]; limitsMoved: string[] };
   glyphs: { added: string[]; removed: string[]; redrawn: string[] };
   breaking: boolean;
@@ -84,6 +90,10 @@ const allNames = (m: Map<string, ManifestIcon>) => new Set([...m.keys(), ...alia
 const namesAfter = allNames(iconsAfter);
 const gone = [...allNames(iconsBefore)].filter((n) => !namesAfter.has(n));
 
+const animatedBefore = new Map([...iconsBefore.values()].flatMap((i) => (i.animation ? [[i.name, i.animation] as const] : [])));
+const animatedAfter = new Map([...iconsAfter.values()].flatMap((i) => (i.animation ? [[i.name, i.animation] as const] : [])));
+const by = (name: string, a: { source: string }) => `${name} (${a.source})`;
+
 const glyphsBefore = byName(base?.glyphs, (g) => g.component);
 const glyphsAfter = byName(current.glyphs, (g) => g.component);
 const glyphs = diff(glyphsBefore, glyphsAfter);
@@ -92,6 +102,15 @@ const glyphGeometry = (g: ManifestGlyph) => `${g.fixed?.geometry ?? ''}/${g.hug.
 const report: Report = {
   base: baseName,
   lucide: { from: base?.lucide ?? null, to: current.lucide ?? null },
+  upstreams: {
+    una: { from: base?.upstreams?.una ?? null, to: current.upstreams?.una ?? null },
+    lucideAnimated: { from: base?.upstreams?.['lucide-animated'] ?? null, to: current.upstreams?.['lucide-animated'] ?? null },
+  },
+  animations: {
+    added: [...animatedAfter].filter(([n]) => !animatedBefore.has(n)).map(([n, a]) => by(n, a)),
+    changed: [...animatedAfter].filter(([n, a]) => animatedBefore.has(n) && (animatedBefore.get(n)!.motion !== a.motion || animatedBefore.get(n)!.source !== a.source)).map(([n, a]) => by(n, a)),
+    dropped: [...animatedBefore].filter(([n]) => iconsAfter.has(n) && !animatedAfter.has(n)).map(([n, a]) => by(n, a)),
+  },
   icons: {
     added: icons.added,
     removed: icons.removed,
@@ -108,16 +127,18 @@ const report: Report = {
   breaking: gone.length > 0 || glyphs.removed.length > 0,
   bump: 'none',
 };
-const additions = report.icons.added.length + report.icons.aliasesAdded.length + report.glyphs.added.length;
-const changes = report.icons.redrawn.length + report.icons.limitsMoved.length + report.glyphs.redrawn.length + report.icons.removed.length + report.icons.aliasesRemoved.length;
-report.bump = report.breaking || additions ? 'minor' : changes || report.lucide.from !== report.lucide.to ? 'patch' : 'none';
+const additions = report.icons.added.length + report.icons.aliasesAdded.length + report.glyphs.added.length + report.animations.added.length;
+const changes =
+  report.icons.redrawn.length + report.icons.limitsMoved.length + report.glyphs.redrawn.length + report.icons.removed.length + report.icons.aliasesRemoved.length + report.animations.changed.length + report.animations.dropped.length;
+const moved = report.lucide.from !== report.lucide.to || report.upstreams.una.from !== report.upstreams.una.to || report.upstreams.lucideAnimated.from !== report.upstreams.lucideAnimated.to;
+report.bump = report.breaking || additions ? 'minor' : changes || moved ? 'patch' : 'none';
 
 const list = (items: readonly string[], max = 40) => (items.length ? items.slice(0, max).map((i) => `\`${i}\``).join(', ') + (items.length > max ? `, and ${items.length - max} more` : '') : '');
 const line = (label: string, items: readonly string[]) => (items.length ? [`- **${label} (${items.length}):** ${list(items)}`] : []);
 const markdown = [
   `## Upstream report`,
   '',
-  `Against ${report.base}. Lucide ${report.lucide.from ?? '(none)'} → ${report.lucide.to ?? '(none)'}.`,
+  `Against ${report.base}. Lucide ${report.lucide.from ?? '(none)'} → ${report.lucide.to ?? '(none)'}; lucide-animated ${report.upstreams.lucideAnimated.from ?? '(none)'} → ${report.upstreams.lucideAnimated.to ?? '(none)'}; UNA ${report.upstreams.una.from?.slice(0, 10) ?? '(none)'} → ${report.upstreams.una.to?.slice(0, 10) ?? '(none)'}.`,
   '',
   ...line('Icons added', report.icons.added),
   ...line('Icons removed', report.icons.removed),
@@ -128,7 +149,10 @@ const markdown = [
   ...line('Glyphs added', report.glyphs.added),
   ...line('Glyphs removed', report.glyphs.removed),
   ...line('Glyphs redrawn', report.glyphs.redrawn),
-  ...(additions + changes === 0 ? ['Nothing drawn changes.'] : []),
+  ...line('Animations added', report.animations.added),
+  ...line('Animations changed', report.animations.changed),
+  ...line('Animations dropped', report.animations.dropped),
+  ...(additions + changes === 0 ? ['Nothing drawn or animated changes.'] : []),
   '',
   report.breaking
     ? `**Breaking:** ${list([...gone, ...glyphs.removed])} would no longer be importable. This needs a person: it won't merge or release itself.`

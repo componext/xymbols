@@ -4,7 +4,16 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "rootDirs": [
+      "scripts/runtime",
+      "scripts/runtime-web"
+    ]
   },
-  "include": ["scripts/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ]
 }

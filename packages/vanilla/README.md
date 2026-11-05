@@ -20,4 +20,6 @@ Icons are Lucide's node arrays, as the `lucide` package exports them (`createEle
 - `tiles/<tagset>/<name>.svg`: 72px glyph tiles in the UNA launcher style, with page-unique ids.
 - `manifest.json`: every icon (aliases, tags, weight limit) and glyph (codes, labels, widths), with file paths.
 
+**Animated.** `xymbols/animated` has every icon's animation data and the web engine: `animateIcons({ icons })` turns every `<i data-lucide="bell" data-effect="bounce" data-trigger="group-hover">` into an animated icon, and `createAnimatedElement(Bell)` returns one with its controller (`play()`, `stop()`, `once()`, `setActive()`). `animatedSvg(Bell)` renders one as a string for the server, and `animate.css` has the state styles, which the engine also injects.
+
 See the [repository README](https://github.com/componext/xymbols#readme) for weights, the tagsets and the design rules.

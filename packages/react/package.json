@@ -23,6 +23,18 @@
       "types": "./dist/dynamic.d.ts",
       "default": "./dist/dynamic.js"
     },
+    "./animated": {
+      "types": "./dist/animated.d.ts",
+      "default": "./dist/animated.js"
+    },
+    "./animated/*": {
+      "types": "./dist/generated/animated/*.d.ts",
+      "default": "./dist/generated/animated/*.js"
+    },
+    "./lucide-animated": {
+      "types": "./dist/lucide-animated.d.ts",
+      "default": "./dist/lucide-animated.js"
+    },
     "./icons/*": {
       "types": "./dist/generated/icons/*.d.ts",
       "default": "./dist/generated/icons/*.js"
@@ -34,7 +46,9 @@
   },
   "files": [
     "dist",
-    "LICENSE-lucide"
+    "LICENSE-lucide",
+    "LICENSE-lucide-animated",
+    "LICENSE-una"
   ],
   "keywords": [
     "icons",
