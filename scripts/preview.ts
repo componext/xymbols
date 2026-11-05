@@ -167,6 +167,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif
 .bar{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .bar h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
 .bar h1 span{color:var(--muted);font-weight:400}
+.tabs{display:flex;gap:4px}
+.tabs a{color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:7px;font-size:13px}
+.tabs a[aria-current]{background:var(--ink);color:var(--bg)}
 .ctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{font:inherit;font-size:12px;color:var(--ink);background:var(--panel);border:0;border-left:1px solid var(--line);padding:5px 9px;cursor:pointer;min-width:34px}
@@ -231,6 +234,7 @@ svg.inline{height:1.4em;width:calc(1.4em * var(--k));vertical-align:middle}
 <body>
 <div class="bar">
   <h1>xymbols <span>${lucide.icons.length} icons · ${glyphs.length} glyphs</span></h1>
+  <nav class="tabs"><a href="index.html" aria-current="page">Catalog</a><a href="letterforms.html">Letterforms</a></nav>
   <div class="ctl">Size <div class="seg" data-var="--size" data-unit="px">${[16, 20, 24, 32, 48].map((s) => `<button aria-pressed="${s === 24}">${s}</button>`).join('')}</div></div>
   <div class="ctl">Weight <div class="seg" data-var="--w" data-unit="">${Object.entries(WEIGHTS).map(([n, w]) => `<button aria-pressed="${n === 'regular'}" value="${w}" title="${n}, stroke ${w}">${n.slice(0, 2)}</button>`).join('')}</div></div>
   ${built ? `<div class="ctl">Effect <div class="seg" data-effect>${['auto', ...EFFECT_NAMES].map((e) => `<button aria-pressed="${e === 'auto'}" title="${e === 'auto' ? "the icon's own animation, else a wiggle" : e}">${e}</button>`).join('')}</div></div>` : ''}
