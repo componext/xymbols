@@ -1,21 +1,23 @@
-# tagsets
+# xymbols
 
-Glyphs for standardized metadata codes, without a framework: licenses (SPDX), locales (ISO 639-1 / BCP 47), part-of-speech tags (UD UPOS), tech abbreviations, keyboard keys and math symbols, on Lucide's 24px stroke grid. For components, see `tagsets-react` and `tagsets-vue`.
-
-Every glyph is 24 tall in up to two fits: `fixed` (the 24×24 square, with a short form or symbol when the full text does not fit) and `hug` (as wide as the full text, on one line).
-
-- `svg/fixed/<tagset>/<name>.svg`, `svg/hug/<tagset>/<name>.svg`: optimized glyphs, safe in `<img>` and CSS. Hug-only glyphs have no fixed file.
-- `sprite.svg` (fixed, or hug where there is none) and `sprite-hug.svg`: one `<symbol id="license-mit">` per glyph, each with its own `viewBox`.
-- `tiles/<tagset>/<name>.svg`: 72px tiles in the UNA launcher style, with page-unique ids. Round the corners in CSS.
-- `manifest.json`: every tagset and glyph, with codes, aliases, labels, widths and file paths.
+Every [Lucide](https://lucide.dev) icon in nine weights, plus tagsets glyphs for licenses (SPDX), locales (ISO 639-1 / BCP 47), part-of-speech tags (UD UPOS), tech abbreviations, keyboard keys and math symbols, without a framework. A drop-in for the `lucide` package. For components, see `xymbols-react`, `xymbols-vue` and `xymbols-react-native`.
 
 ```js
-import { PosNoun, getGlyph, toSvg, createElement, replaceElements } from 'tagsets';
+import { createIcons, icons, House, Bell, PosNoun, getGlyph, toSvg, replaceElements } from 'xymbols';
 
-toSvg(PosNoun);                              // N, 24×24
+createIcons({ icons });                      // <i data-lucide="house" data-weight="bold"></i> → <svg>
+toSvg(Bell, { weight: 'heavy', size: 32 });  // an SVG string, in any weight
 toSvg(PosNoun, { fit: 'hug' });              // NOUN, 48×24
 getGlyph('keys', 'ShiftLeft');               // KeyShift
-replaceElements();                           // <i data-tagset="pos" data-code="NOUN" data-fit="hug"></i> → <svg>
+replaceElements();                           // <i data-tagset="pos" data-code="NOUN"></i> → <svg>
 ```
 
-See the repository README for the design rules and the full list.
+Icons are Lucide's node arrays, as the `lucide` package exports them (`createElement(House, attrs)` works the same). Files:
+
+- `svg/icons/<name>.svg`: every icon, as Lucide draws it.
+- `svg/fixed/<tagset>/<name>.svg`, `svg/hug/<tagset>/<name>.svg`: glyphs, safe in `<img>` and CSS. Hug-only glyphs have no fixed file.
+- `sprite.svg` and `sprite-hug.svg`: one `<symbol>` per icon (`#house`) and glyph (`#license-mit`), each with its own `viewBox`.
+- `tiles/<tagset>/<name>.svg`: 72px glyph tiles in the UNA launcher style, with page-unique ids.
+- `manifest.json`: every icon (aliases, tags, weight limit) and glyph (codes, labels, widths), with file paths.
+
+See the [repository README](https://github.com/componext/xymbols#readme) for weights, the tagsets and the design rules.

@@ -17,6 +17,8 @@ export interface GlyphVariant {
   readonly x: number;
   readonly width: number;
   readonly node: GlyphNode;
+  /** The heaviest stroke this drawing takes before strokes crowd; absent when every weight fits (weights.ts). */
+  readonly maxStroke?: number;
 }
 
 export interface GlyphMeta {

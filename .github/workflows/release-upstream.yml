@@ -1,0 +1,81 @@
+name: Release upstream updates
+
+# Every morning: if everything on main since the last release came from
+# Dependabot (upstream updates that merged themselves), release it. The
+# version comes from the upstream report: minor when icons or names are
+# added, patch for redraws. Anything a person merged waits for a person to
+# release it (a GitHub release, which runs release.yml).
+#
+# A release made with the Actions token starts no workflows, so this
+# dispatches release.yml itself; dispatch is the exception to that rule.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-upstream
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release if only upstream changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the tag and the GitHub release
+      actions: write # dispatching release.yml
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Anything to release?
+        id: since
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -z "$last" ]; then echo "No release yet; the first one is made by hand."; exit 0; fi
+          authors=$(git log "$last..HEAD" --format='%an' | sort -u)
+          if [ -z "$authors" ]; then echo "Nothing since $last."; exit 0; fi
+          if [ "$authors" != "dependabot[bot]" ]; then
+            echo "Changes since $last include work by people ($(echo $authors | tr '\n' ' ')); release those by hand."
+            exit 0
+          fi
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v6
+        if: steps.since.outputs.last
+
+      - uses: actions/setup-node@v7
+        if: steps.since.outputs.last
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Report
+        if: steps.since.outputs.last
+        run: |
+          pnpm install --frozen-lockfile
+          node scripts/build.ts
+          node scripts/report.ts --markdown report.md --json report.json
+
+      - name: Tag, release and publish
+        if: steps.since.outputs.last
+        env:
+          LAST: ${{ steps.since.outputs.last }}
+        run: |
+          bump=$(node -p 'const r = require("./report.json"); r.breaking ? "stop" : r.bump')
+          if [ "$bump" = "none" ]; then echo "Nothing drawn changed; no release."; exit 0; fi
+          if [ "$bump" = "stop" ]; then echo "The update breaks imports; release it by hand."; exit 0; fi
+          next=$(node -e '
+            const [major, minor, patch] = process.argv[1].replace(/^v/, "").split("-")[0].split(".").map(Number);
+            console.log(process.argv[2] === "minor" ? `v${major}.${minor + 1}.0` : `v${major}.${minor}.${patch + 1}`);
+          ' "$LAST" "$bump")
+          gh release create "$next" --target "$GITHUB_SHA" --title "$next" --notes-file report.md
+          gh workflow run release.yml -f tag="$next"
+          echo "Released $next ($bump) and started the publish."

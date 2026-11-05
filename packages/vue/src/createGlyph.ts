@@ -1,7 +1,10 @@
 import { h } from 'vue';
 import type { FunctionalComponent, PropType } from 'vue';
+import { useXymbolsProps } from './createIcon.js';
 import { absoluteStroke, pickVariant, viewBoxOf, widthAt } from './generated/render.js';
 import type { Fit, GlyphMeta, GlyphVariant, GlyphVariants } from './generated/types.js';
+import { resolveStroke } from './generated/weights.js';
+import type { Weight } from './generated/weights.js';
 
 export interface GlyphProps {
   /** Height, and the width of a fixed glyph. Default 24. */
@@ -14,8 +17,10 @@ export interface GlyphProps {
   fit?: Fit;
   /** Stroke colour. Default `currentColor`. */
   color?: string;
-  /** Stroke width in grid units (1/24 of the height). Default 2. */
+  /** Stroke width in grid units (1/24 of the height). Default 2; overrides `weight`. */
   strokeWidth?: number | string;
+  /** One of nine weights, SF Symbols' names or 100 to 900. Default regular (2). */
+  weight?: Weight;
   /** Keep the stroke `strokeWidth` pixels wide at any size. */
   absoluteStrokeWidth?: boolean;
   /**
@@ -45,7 +50,8 @@ export const glyphProps = {
   fit: String as PropType<Fit>,
   color: String,
   strokeWidth: [Number, String] as PropType<number | string>,
-  absoluteStrokeWidth: Boolean,
+  weight: [String, Number] as PropType<Weight>,
+  absoluteStrokeWidth: { type: Boolean, default: undefined },
   title: String,
 };
 
@@ -53,9 +59,10 @@ export function createGlyph(meta: GlyphMeta, fixed: GlyphVariant | null, hug: Gl
   const variants = { fixed, hug };
   // Undeclared attributes (class, style, aria-*, listeners) fall through to the <svg>.
   const Glyph: FunctionalComponent<GlyphProps> = (props, { attrs, slots }) => {
-    const size = props.size ?? 24;
-    const strokeWidth = props.strokeWidth ?? 2;
+    const context = useXymbolsProps();
+    const size = props.size ?? context.size ?? 24;
     const v = pickVariant(variants, props.fit);
+    const stroke = resolveStroke({ strokeWidth: props.strokeWidth, weight: props.weight }, context, v.maxStroke);
     const labelled = Boolean(props.title || attrs['aria-label'] || attrs['aria-labelledby']);
     return h(
       'svg',
@@ -64,9 +71,9 @@ export function createGlyph(meta: GlyphMeta, fixed: GlyphVariant | null, hug: Gl
         width: widthAt(size, v),
         height: size,
         viewBox: viewBoxOf(v),
-        stroke: props.color ?? 'currentColor',
-        'stroke-width': props.absoluteStrokeWidth ? absoluteStroke(strokeWidth, size) : strokeWidth,
-        class: ['tagsets', `tagsets-${meta.id}`, v === fixed ? null : 'tagsets-hug'],
+        stroke: props.color ?? context.color ?? 'currentColor',
+        'stroke-width': (props.absoluteStrokeWidth ?? context.absoluteStrokeWidth) ? absoluteStroke(stroke, size) : stroke,
+        class: ['xymbol', `xymbol-${meta.id}`, v === fixed ? null : 'xymbol-hug', context.class],
         ...(labelled ? { role: 'img' } : { 'aria-hidden': 'true' }),
       },
       [props.title ? h('title', props.title) : null, ...v.node.map(([tag, a]) => h(tag, { ...a })), slots.default?.()],

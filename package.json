@@ -1,7 +1,7 @@
 {
-  "name": "tagsets-monorepo",
+  "name": "xymbols-monorepo",
   "private": true,
-  "description": "Tagsets: Lucide-style glyphs for standardized metadata codes (licenses, locales, part-of-speech tags, tech abbreviations, keys, math symbols).",
+  "description": "xymbols: Lucide-compatible symbols in nine weights, plus tagsets (licenses, locales, part-of-speech tags, tech abbreviations, keys, math), for React, Vue, React Native and plain JS.",
   "type": "module",
   "packageManager": "pnpm@10.12.4",
   "engines": {
@@ -9,8 +9,9 @@
   },
   "scripts": {
     "build": "node scripts/build.ts && pnpm run build:packages",
-    "build:packages": "tsc -b packages/vanilla packages/react packages/vue",
+    "build:packages": "tsc -b packages/vanilla packages/react packages/vue packages/react-native",
     "preview": "node scripts/preview.ts",
+    "report": "node scripts/report.ts",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json",
     "check": "pnpm run build && pnpm run typecheck && pnpm run test",
@@ -18,22 +19,29 @@
     "versions": "node scripts/versions.ts"
   },
   "devDependencies": {
+    "@lucide/vue": "1.69.0",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "lucide": "1.69.0",
+    "lucide-react": "1.69.0",
+    "lucide-react-native": "1.69.0",
+    "lucide-static": "1.69.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-native-svg": "^15.16.0",
     "svg-path-bbox": "^2.1.0",
     "svgo": "^4.1.0",
     "svgpath": "^2.6.0",
-    "tagsets": "workspace:*",
-    "tagsets-react": "workspace:*",
-    "tagsets-vue": "workspace:*",
     "typescript": "^7.0.2",
-    "vue": "^3.5.44"
+    "vue": "^3.5.44",
+    "xymbols": "workspace:*",
+    "xymbols-react": "workspace:*",
+    "xymbols-react-native": "workspace:*",
+    "xymbols-vue": "workspace:*"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/componext/tagsets.git"
+    "url": "git+https://github.com/componext/xymbols.git"
   }
 }

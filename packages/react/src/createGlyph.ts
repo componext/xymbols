@@ -1,7 +1,11 @@
 import { createElement, forwardRef } from 'react';
 import type { ForwardRefExoticComponent, RefAttributes, SVGProps } from 'react';
+import { useXymbolsContext } from './createIcon.js';
+import { mergeClasses } from './generated/icon.js';
 import { absoluteStroke, pickVariant, viewBoxOf, widthAt } from './generated/render.js';
 import type { Fit, GlyphMeta, GlyphVariant, GlyphVariants } from './generated/types.js';
+import { resolveStroke } from './generated/weights.js';
+import type { Weight } from './generated/weights.js';
 
 export interface GlyphProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   /** Height, and the width of a fixed glyph. Default 24. */
@@ -14,8 +18,10 @@ export interface GlyphProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   fit?: Fit;
   /** Stroke colour. Default `currentColor`. */
   color?: string;
-  /** Stroke width in grid units (1/24 of the height). Default 2. */
+  /** Stroke width in grid units (1/24 of the height). Default 2; overrides `weight`. */
   strokeWidth?: number | string;
+  /** One of nine weights, SF Symbols' names or 100 to 900. Default regular (2). */
+  weight?: Weight;
   /** Keep the stroke `strokeWidth` pixels wide at any size. */
   absoluteStrokeWidth?: boolean;
   /**
@@ -44,23 +50,23 @@ export const defaultAttributes = {
 
 export function createGlyph(meta: GlyphMeta, fixed: GlyphVariant | null, hug: GlyphVariant): GlyphComponent {
   const variants = { fixed, hug };
-  const Glyph = forwardRef<SVGSVGElement, GlyphProps>(function Glyph(
-    { size = 24, fit = 'fixed', color = 'currentColor', strokeWidth = 2, absoluteStrokeWidth = false, title, className, children, ...rest },
-    ref,
-  ) {
+  const Glyph = forwardRef<SVGSVGElement, GlyphProps>(function Glyph({ size, fit = 'fixed', color, strokeWidth, weight, absoluteStrokeWidth, title, className, children, ...rest }, ref) {
+    const context = useXymbolsContext();
     const v = pickVariant(variants, fit);
+    const h = size ?? context.size ?? 24;
+    const stroke = resolveStroke({ strokeWidth, weight }, context, v.maxStroke);
     const labelled = Boolean(title || rest['aria-label'] || rest['aria-labelledby']);
     return createElement(
       'svg',
       {
         ref,
         ...defaultAttributes,
-        width: widthAt(size, v),
-        height: size,
+        width: widthAt(h, v),
+        height: h,
         viewBox: viewBoxOf(v),
-        stroke: color,
-        strokeWidth: absoluteStrokeWidth ? absoluteStroke(strokeWidth, size) : strokeWidth,
-        className: ['tagsets', `tagsets-${meta.id}`, v === fixed ? null : 'tagsets-hug', className].filter(Boolean).join(' '),
+        stroke: color ?? context.color ?? 'currentColor',
+        strokeWidth: (absoluteStrokeWidth ?? context.absoluteStrokeWidth) ? absoluteStroke(stroke, h) : stroke,
+        className: mergeClasses('xymbol', `xymbol-${meta.id}`, v === fixed ? null : 'xymbol-hug', context.className, className),
         ...(labelled ? { role: 'img' } : { 'aria-hidden': true }),
         ...rest,
       },

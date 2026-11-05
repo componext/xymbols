@@ -1,19 +1,19 @@
 {
-  "name": "tagsets-react",
-  "version": "0.4.0",
-  "description": "Tagsets glyphs as React components: licenses, locales, part-of-speech tags, tech abbreviations, keys and math symbols on Lucide's 24px stroke grid.",
+  "name": "xymbols-react",
+  "version": "0.0.0",
   "license": "ISC",
-  "homepage": "https://github.com/componext/tagsets#readme",
+  "homepage": "https://github.com/componext/xymbols#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/componext/tagsets.git",
+    "url": "git+https://github.com/componext/xymbols.git",
     "directory": "packages/react"
   },
   "bugs": {
-    "url": "https://github.com/componext/tagsets/issues"
+    "url": "https://github.com/componext/xymbols/issues"
   },
   "type": "module",
   "sideEffects": false,
+  "description": "xymbols as React components, a drop-in for lucide-react: every Lucide icon in nine weights, plus tagsets glyphs for licenses, locales, POS tags, tech abbreviations, keys and math.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,6 +22,10 @@
     "./dynamic": {
       "types": "./dist/dynamic.d.ts",
       "default": "./dist/dynamic.js"
+    },
+    "./icons/*": {
+      "types": "./dist/generated/icons/*.d.ts",
+      "default": "./dist/generated/icons/*.js"
     },
     "./glyphs/*": {
       "types": "./dist/generated/glyphs/*.d.ts",
@@ -34,14 +38,15 @@
   ],
   "keywords": [
     "icons",
-    "glyphs",
-    "react",
+    "symbols",
+    "svg",
+    "lucide",
+    "weights",
     "spdx",
     "bcp47",
-    "universal-dependencies",
-    "lucide",
     "keyboard",
-    "math"
+    "math",
+    "react"
   ],
   "peerDependencies": {
     "react": ">=18"

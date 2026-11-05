@@ -1,0 +1,61 @@
+{
+  "name": "xymbols-react-native",
+  "version": "0.0.0",
+  "description": "xymbols as React Native components, a drop-in for lucide-react-native: every Lucide icon in nine weights, plus tagsets glyphs for licenses, locales, POS tags, tech abbreviations, keys and math.",
+  "license": "ISC",
+  "homepage": "https://github.com/componext/xymbols#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/componext/xymbols.git",
+    "directory": "packages/react-native"
+  },
+  "bugs": {
+    "url": "https://github.com/componext/xymbols/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./dynamic": {
+      "types": "./dist/dynamic.d.ts",
+      "default": "./dist/dynamic.js"
+    },
+    "./icons/*": {
+      "types": "./dist/generated/icons/*.d.ts",
+      "default": "./dist/generated/icons/*.js"
+    },
+    "./glyphs/*": {
+      "types": "./dist/generated/glyphs/*.d.ts",
+      "default": "./dist/generated/glyphs/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE-lucide"
+  ],
+  "keywords": [
+    "icons",
+    "symbols",
+    "svg",
+    "lucide",
+    "weights",
+    "spdx",
+    "bcp47",
+    "keyboard",
+    "math",
+    "react-native"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": "*",
+    "react-native-svg": ">=12"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "react-native-svg": "^15.16.0"
+  }
+}

@@ -1,27 +1,41 @@
 /**
- * Write preview/index.html: every glyph in both fits and as a tile, the
- * stroke alphabet, and glyphs in use, with size, stroke, fit, view and theme
- * controls for checking legibility. Reads the source glyphs, so it works
- * before a build.
+ * Write preview/index.html, the catalog (also published to GitHub Pages):
+ * every Lucide icon, every tagsets glyph in both fits and as a tile, the
+ * stroke alphabet, and glyphs in use, with size, weight, fit, view and theme
+ * controls and search. Reads sources and lucide-static, so it works before a
+ * build.
  *
  *   pnpm preview && open preview/index.html
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LETTERS, SIZES, compose } from './lib/letters.ts';
+import { loadIcons, type Icon } from './lib/lucide.ts';
 import { ROOT, ROOT_ATTRS, loadGlyphs, toNodes, type Glyph, type Node, type Variant } from './lib/source.ts';
 import { tileSvg } from './lib/tiles.ts';
+import { maxStroke } from './lib/weights.ts';
+import { WEIGHTS } from './runtime/weights.ts';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const el = ([tag, a]: Node) => `<${tag} ${Object.entries(a).map(([k, v]) => `${k}="${v}"`).join(' ')}/>`;
+/** Weight limits by drawing; the page's weight control stops at each one (CSS min()). */
+const limits = new Map<string, number | undefined>();
+const limitOf = (nodes: readonly Node[]) => {
+  const key = JSON.stringify(nodes);
+  if (!limits.has(key)) limits.set(key, maxStroke(nodes));
+  return limits.get(key);
+};
 const svg = (v: Pick<Variant, 'x' | 'width' | 'nodes'>, cls = '') => {
   const root = Object.entries({ ...ROOT_ATTRS, width: String(v.width), viewBox: `${v.x} 0 ${v.width} 24` })
     .map(([k, val]) => `${k}="${val}"`)
     .join(' ');
-  return `<svg ${root} class="${cls}" style="--k:${+(v.width / 24).toFixed(4)}" aria-hidden="true">${v.nodes.map(el).join('')}</svg>`;
+  const max = limitOf(v.nodes);
+  return `<svg ${root} class="${cls}" style="--k:${+(v.width / 24).toFixed(4)}${max === undefined ? '' : `;--max:${max}`}" aria-hidden="true">${v.nodes.map(el).join('')}</svg>`;
 };
 
 const { tagsets, glyphs, problems } = loadGlyphs();
+const lucide = loadIcons();
+problems.push(...lucide.problems);
 if (problems.length) {
   for (const p of problems) console.error(`✗ ${p}`);
   process.exit(1);
@@ -60,6 +74,26 @@ const sections = tagsets
   <header><h2>${esc(t.label)}</h2><p>${list.length} glyphs${hugOnly ? ` (${hugOnly} hug only)` : ''} · ${t.url ? `<a href="${esc(t.url)}">${esc(t.standard)}</a>` : esc(t.standard)} · prefix <code>${t.prefix}</code>${t.frame ? ` · ${t.frame}` : ''}</p></header>
   <div class="grid">${list.map(card).join('\n')}</div>
 </section>`;
+  })
+  .join('\n');
+
+const iconCard = (i: Icon) => {
+  const search = [i.name, ...i.aliases.map((a) => a.name), ...i.tags].join(' ');
+  const also = i.aliases.length ? ` · also ${i.aliases.map((a) => a.name).join(', ')}` : '';
+  const max = limitOf(i.nodes);
+  return `<figure class="card icon" data-search="${esc(search)}" title="${esc(`${i.component}${also}${max === undefined ? '' : ` · stops at stroke ${max}`}`)}"><div class="art">${svg({ x: 0, width: 24, nodes: i.nodes })}</div><figcaption><span>${esc(i.name)}</span></figcaption></figure>`;
+};
+const iconsSection = `<section data-tagset="icons">
+  <header><h2>Icons</h2><p>${lucide.icons.length} Lucide ${lucide.version} icons, ${lucide.icons.reduce((n, i) => n + i.aliases.length, 0)} aliases · <a href="https://lucide.dev/icons/">lucide.dev</a> · imports as in lucide-react: <code>House</code>, <code>HouseIcon</code>, <code>LucideHouse</code></p></header>
+  <div class="grid icons">${lucide.icons.map(iconCard).join('\n')}</div>
+</section>`;
+
+const ladderIds = ['house', 'bell', 'settings', 'search', 'heart', 'calendar', 'mail', 'circle-check'];
+const ladder = Object.entries(WEIGHTS)
+  .map(([name, w]) => {
+    const row = ladderIds.map((id) => lucide.icons.find((i) => i.name === id)!).map((i) => svg({ x: 0, width: 24, nodes: i.nodes }, 'show fixed-w').replace('style="', `style="--fw:${w};`));
+    const glyphRow = ['locale-en', 'license-cc', 'key-k', 'math-sum'].map((id) => svg(get(id).fixed ?? get(id).hug, 'show fixed-w').replace('style="', `style="--fw:${w};`));
+    return `<div class="rung"><span class="who">${name}<small>${w}</small></span>${row.join('')}<span class="sep"></span>${glyphRow.join('')}</div>`;
   })
   .join('\n');
 
@@ -103,9 +137,9 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tagsets preview</title>
+<title>xymbols</title>
 <style>
-:root{--bg:#fafafa;--panel:#fff;--ink:#18181b;--muted:#71717a;--line:#e4e4e7;--accent:#0284c7;--warn:#b45309;--size:24px;--stroke:2;color-scheme:light}
+:root{--bg:#fafafa;--panel:#fff;--ink:#18181b;--muted:#71717a;--line:#e4e4e7;--accent:#0284c7;--warn:#b45309;--size:24px;--w:2;color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--panel:#18181b;--ink:#f4f4f5;--muted:#a1a1aa;--line:#27272a;--accent:#38bdf8;--warn:#fbbf24;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0c0c0e;--panel:#18181b;--ink:#f4f4f5;--muted:#a1a1aa;--line:#27272a;--accent:#38bdf8;--warn:#fbbf24;color-scheme:dark}
 *{box-sizing:border-box}
@@ -125,9 +159,20 @@ h2{margin:0;font-size:15px;font-weight:600}
 section header p{margin:0;color:var(--muted);font-size:12px}
 a{color:var(--accent)}
 code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
-svg{stroke-width:var(--stroke)}
+svg{stroke-width:min(var(--w),var(--max,99))}
+svg.fixed-w{stroke-width:min(var(--fw),var(--max,99))}
 svg.show,.art svg{height:var(--size);width:calc(var(--size) * var(--k))}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:8px}
+.grid.icons{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.card.icon{padding:12px 6px 8px;gap:6px}
+.card.icon .art{height:48px}
+section{content-visibility:auto;contain-intrinsic-size:auto 800px}
+.ladder{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px}
+.rung{display:flex;align-items:center;gap:14px;min-height:40px;overflow-x:auto}
+.rung .who{width:92px;flex:none;font-size:12px;color:var(--muted);display:flex;flex-direction:column}
+.rung .who small{font:11px ui-monospace,Menlo,monospace}
+.rung .sep{width:1px;align-self:stretch;background:var(--line);flex:none}
+.rung svg{flex:none}
 .card{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
 .art{height:64px;display:grid;place-items:center;max-width:100%;overflow:hidden}
 .pair-art{display:flex;gap:10px;align-items:center}
@@ -162,15 +207,20 @@ svg.inline{height:1.4em;width:calc(1.4em * var(--k));vertical-align:middle}
 </head>
 <body>
 <div class="bar">
-  <h1>Tagsets <span>${glyphs.length} glyphs</span></h1>
+  <h1>xymbols <span>${lucide.icons.length} icons · ${glyphs.length} glyphs</span></h1>
   <div class="ctl">Size <div class="seg" data-var="--size" data-unit="px">${[16, 20, 24, 32, 48].map((s) => `<button aria-pressed="${s === 24}">${s}</button>`).join('')}</div></div>
-  <div class="ctl">Stroke <div class="seg" data-var="--stroke" data-unit="">${[1.5, 2, 2.5].map((s) => `<button aria-pressed="${s === 2}">${s}</button>`).join('')}</div></div>
+  <div class="ctl">Weight <div class="seg" data-var="--w" data-unit="">${Object.entries(WEIGHTS).map(([n, w]) => `<button aria-pressed="${n === 'regular'}" value="${w}" title="${n}, stroke ${w}">${n.slice(0, 2)}</button>`).join('')}</div></div>
   <div class="ctl">Fit <div class="seg" data-attr="data-fit">${['fixed', 'hug'].map((s) => `<button aria-pressed="${s === 'fixed'}">${s}</button>`).join('')}</div></div>
   <div class="ctl">View <div class="seg" data-attr="data-view">${['glyphs', 'tiles'].map((s) => `<button aria-pressed="${s === 'glyphs'}">${s}</button>`).join('')}</div></div>
   <div class="ctl">Theme <div class="seg" data-attr="data-theme">${['auto', 'light', 'dark'].map((s) => `<button aria-pressed="${s === 'auto'}">${s}</button>`).join('')}</div></div>
-  <input type="search" placeholder="Search codes, labels, aliases" aria-label="Search glyphs">
+  <input type="search" placeholder="Search icons, tags, codes" aria-label="Search icons and glyphs">
 </div>
 <main>
+<section data-tagset="weights">
+  <header><h2>Weights</h2><p>Nine weights, named as in SF Symbols. Regular is Lucide's 2; a drawing whose strokes would crowd stops getting heavier (Settings at 2.97, CC at 2.43).</p></header>
+  <div class="ladder">${ladder}</div>
+</section>
+${iconsSection}
 <section data-tagset="compare">
   <header><h2>Fixed and hug</h2><p>Fixed is the 24×24 square, with a short form or symbol when the text does not fit; hug is 24 tall and as wide as the full text. Dashed in the grid below: no fixed form, so fixed falls back to hug.</p></header>
   <div class="compare">${compare}</div>
@@ -191,7 +241,7 @@ for (const seg of document.querySelectorAll('.seg')) {
     const b = e.target.closest('button');
     if (!b) return;
     for (const x of seg.children) x.setAttribute('aria-pressed', String(x === b));
-    const v = b.textContent;
+    const v = b.value || b.textContent;
     if (seg.dataset.var) document.documentElement.style.setProperty(seg.dataset.var, v + seg.dataset.unit);
     if (seg.dataset.attr === 'data-theme') v === 'auto' ? document.documentElement.removeAttribute('data-theme') : document.documentElement.setAttribute('data-theme', v);
     else if (seg.dataset.attr) document.body.setAttribute(seg.dataset.attr, v);
@@ -210,4 +260,4 @@ document.querySelector('input[type=search]').addEventListener('input', (e) => {
 const out = join(ROOT, 'preview');
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'index.html'), html);
-console.log(`preview: ${glyphs.length} glyphs → preview/index.html`);
+console.log(`preview: ${lucide.icons.length} icons and ${glyphs.length} glyphs → preview/index.html`);

@@ -2,9 +2,9 @@
  * Source glyphs: loading, strict parsing, the rules every glyph must pass,
  * and resolving each glyph into its fixed and hug variants.
  *
- * packages/glyphs/<tagset>/_tagset.json   the tagset
- * packages/glyphs/<tagset>/<name>.json    one glyph: codes, label, and its text
- * packages/glyphs/<tagset>/<name>.svg     a hand-drawn fixed variant (optional)
+ * sources/tagsets/<tagset>/_tagset.json   the tagset
+ * sources/tagsets/<tagset>/<name>.json    one glyph: codes, label, and its text
+ * sources/tagsets/<tagset>/<name>.svg     a hand-drawn fixed variant (optional)
  *
  * A glyph with `text` is composed from the stroke alphabet: its hug variant
  * always, its fixed variant when the text (or its `short` form) fits the
@@ -21,7 +21,7 @@ import { normalizeCode, type Normalize } from '../runtime/resolve.ts';
 import { spacingProblems } from './spacing.ts';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
-export const GLYPHS_DIR = join(ROOT, 'packages/glyphs');
+export const GLYPHS_DIR = join(ROOT, 'sources/tagsets');
 
 export type Node = [tag: string, attrs: Record<string, string>];
 
@@ -57,6 +57,8 @@ export interface Variant {
   nodes: Node[];
   /** What it shows: composed text, its short form, or a drawing. */
   from: 'text' | 'short' | 'drawn';
+  /** The heaviest stroke it takes (weights.ts); set by the build on the shipped nodes. */
+  maxStroke?: number;
 }
 
 export interface Glyph {

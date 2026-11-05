@@ -1,0 +1,14 @@
+export { Icon, LucideProvider, XymbolsProvider, createLucideIcon, useLucideContext, useXymbolsContext } from './createIcon.js';
+export type { IconProps, LucideIcon, LucideProps, XymbolProps, XymbolsConfig } from './createIcon.js';
+export { createGlyph } from './createGlyph.js';
+export type { GlyphComponent, GlyphProps } from './createGlyph.js';
+export type { IconData, IconNode } from './generated/icon.js';
+export { WEIGHTS, weightStroke } from './generated/weights.js';
+export type { Weight, WeightName } from './generated/weights.js';
+export { absoluteStroke, pickVariant, viewBoxOf, widthAt } from './generated/render.js';
+export type { Fit, GlyphData, GlyphElement, GlyphMeta, GlyphNode, GlyphVariant, GlyphVariants, TagsetInfo } from './generated/types.js';
+export { tagsets } from './generated/registry.js';
+export type { TagsetId } from './generated/registry.js';
+export * as icons from './generated/icons-object.js';
+export * from './generated/icons/index.js';
+export * from './generated/glyphs/index.js';

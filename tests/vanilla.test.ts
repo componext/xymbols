@@ -3,10 +3,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
-import { LicenseLgpl, LocaleEn, MathSum, PosNoun, getGlyph, glyphs, registry, tagsets, toSvg } from 'tagsets';
+import { LicenseLgpl, LocaleEn, MathSum, PosNoun, getGlyph, glyphs, registry, tagsets, toSvg } from 'xymbols';
 import { loadGlyphs } from '../scripts/lib/source.ts';
 
-const dist = dirname(createRequire(import.meta.url).resolve('tagsets/manifest.json'));
+const dist = dirname(createRequire(import.meta.url).resolve('xymbols/manifest.json'));
 type ManifestVariant = { svg: string; width: number; x?: number; shows: string };
 const manifest = JSON.parse(readFileSync(join(dist, 'manifest.json'), 'utf8')) as {
   tagsets: { id: string; count: number }[];
@@ -98,15 +98,15 @@ test('codes from data resolve to glyphs', () => {
 test('toSvg draws the fit asked for, sized by height', () => {
   const plain = toSvg(LocaleEn);
   assert.match(plain, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"/);
-  assert.match(plain, /class="tagsets tagsets-locale-en" aria-hidden="true"/);
+  assert.match(plain, /class="xymbol xymbol-locale-en" aria-hidden="true"/);
   assert.equal(plain.match(/<path /g)?.length, 2);
 
   assert.match(toSvg(PosNoun), /width="24" height="24" viewBox="0 0 24 24"/);
-  assert.match(toSvg(PosNoun, { fit: 'hug', size: 48 }), /width="96" height="48" viewBox="0 0 48 24".*class="tagsets tagsets-pos-noun tagsets-hug"/);
+  assert.match(toSvg(PosNoun, { fit: 'hug', size: 48 }), /width="96" height="48" viewBox="0 0 48 24".*class="xymbol xymbol-pos-noun xymbol-hug"/);
   assert.match(toSvg(LicenseLgpl), /width="48" height="24" viewBox="0 0 48 24"/, 'no fixed form: falls back to hug');
   assert.match(toSvg(MathSum, { fit: 'hug', size: '1.5em' }), /width="1em" height="1.5em" viewBox="4 0 16 24"/);
 
   const custom = toSvg(LocaleEn, { size: 48, color: '#0a0', strokeWidth: 2, absoluteStrokeWidth: true, title: 'English <3', class: 'x', attrs: { 'data-k': 1 } });
   assert.match(custom, /stroke="#0a0" stroke-width="1"/);
-  assert.match(custom, /class="tagsets tagsets-locale-en x" role="img" data-k="1"><title>English &lt;3<\/title>/);
+  assert.match(custom, /class="xymbol xymbol-locale-en x" role="img" data-k="1"><title>English &lt;3<\/title>/);
 });
