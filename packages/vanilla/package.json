@@ -23,6 +23,15 @@
       "types": "./dist/generated/icons/*.d.ts",
       "default": "./dist/generated/icons/*.js"
     },
+    "./animated": {
+      "types": "./dist/animated.d.ts",
+      "default": "./dist/animated.js"
+    },
+    "./animated/*": {
+      "types": "./dist/generated/animated/*.d.ts",
+      "default": "./dist/generated/animated/*.js"
+    },
+    "./animate.css": "./dist/animate.css",
     "./manifest.json": "./dist/manifest.json",
     "./sprite.svg": "./dist/sprite.svg",
     "./sprite-hug.svg": "./dist/sprite-hug.svg",
@@ -31,7 +40,9 @@
   },
   "files": [
     "dist",
-    "LICENSE-lucide"
+    "LICENSE-lucide",
+    "LICENSE-lucide-animated",
+    "LICENSE-una"
   ],
   "keywords": [
     "icons",

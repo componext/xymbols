@@ -16,7 +16,7 @@ export interface XymbolsConfig {
   className?: string;
 }
 
-const XymbolsContext = createContext<XymbolsConfig>({});
+export const XymbolsContext = createContext<XymbolsConfig>({});
 
 /** Set defaults for every icon and glyph inside: `<XymbolsProvider weight="semibold" size={20}>`. */
 export function XymbolsProvider({ children, size, color, strokeWidth, weight, absoluteStrokeWidth, nonScalingStroke, className }: XymbolsConfig & { children?: ReactNode }) {

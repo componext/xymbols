@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { EFFECT_NAMES, type Motion } from '../runtime/motion.ts';
 import { WEIGHTS } from '../runtime/weights.ts';
 import { normalizeCode } from '../runtime/resolve.ts';
 import { exportNames, type Icon } from './lucide.ts';
@@ -20,10 +21,15 @@ export interface Built {
   hug: Variant;
 }
 
-/** A Lucide icon with the heaviest stroke it takes. */
+/** A Lucide icon with the heaviest stroke it takes, and how it animates. */
 export interface BuiltIcon {
   icon: Icon;
   maxStroke?: number;
+  /** Its own animation, from the first upstream that has one (UNA, then lucide-animated). */
+  motion?: Motion;
+  motionSource?: 'una' | 'lucide-animated';
+  /** lucide-animated's export name for it and its animation there (if it carried over), for the lucide-animated drop-in. */
+  lucideAnimated?: { name: string; motion?: Motion };
 }
 
 export type Framework = 'react' | 'vue' | 'react-native';
@@ -138,11 +144,16 @@ ${sets.join('\n')}
 `;
 }
 
-/** Copy the shared runtime (icon builder, weights, resolver, render arithmetic, types) into a package's src/generated/. */
-function runtime(pkgSrc: string) {
-  const from = join(ROOT, 'scripts/runtime');
+/**
+ * Copy the shared runtime (icon builder, weights, resolver, render arithmetic, motion, types) into a
+ * package's src/generated/, and the web animation engine into the web packages'.
+ */
+function runtime(pkgSrc: string, web: boolean) {
   mkdirSync(join(pkgSrc, 'generated'), { recursive: true });
-  for (const f of readdirSync(from)) copyFileSync(join(from, f), join(pkgSrc, 'generated', f));
+  for (const dir of ['scripts/runtime', ...(web ? ['scripts/runtime-web'] : [])]) {
+    const from = join(ROOT, dir);
+    for (const f of readdirSync(from)) copyFileSync(join(from, f), join(pkgSrc, 'generated', f));
+  }
 }
 
 /** React, Vue and React Native: one module per glyph (deep-importable) plus a barrel. */
@@ -268,10 +279,79 @@ export default ${b.icon.component};
   write(join(src, 'generated/icons/index.ts'), GENERATED + barrel.join('\n') + '\n');
 }
 
+// ---------------------------------------------------------------- animated icons
+
+const SOURCE_NAMES = { una: 'UNA', 'lucide-animated': 'lucide-animated' } as const;
+
+/** Data as TypeScript: JSON, except that a track repeating forever keeps its Infinity. */
+const code = (value: unknown) => JSON.stringify(value, (_, v) => (v === Infinity ? '__Infinity__' : v)).replace(/"__Infinity__"/g, 'Infinity');
+
+function animatedDoc(b: BuiltIcon): string {
+  const own = b.motionSource ? `Its own animation (\`effect="auto"\`, the default) comes from ${SOURCE_NAMES[b.motionSource]}.` : 'It has no animation of its own yet, so `effect="auto"` wiggles it.';
+  return `/**\n * ${b.icon.component}, animated: Lucide's \`${b.icon.name}\`. ${own} Every icon also takes ${EFFECT_NAMES.map((e) => `\`${e}\``).join(', ')}.\n *\n * @see https://lucide.dev/icons/${b.icon.name}\n */\n`;
+}
+
+/** React, Vue, React Native: an animated component per icon, built on its static module's data. */
+function animatedComponents(pkg: Framework, icons: readonly BuiltIcon[]) {
+  const src = join(ROOT, 'packages', pkg, 'src');
+  for (const b of icons) {
+    const motion = b.motion ? `\nexport const __motion: Motion = ${code(b.motion)};\n` : '';
+    write(
+      join(src, 'generated/animated', `${b.icon.name}.ts`),
+      `${GENERATED}import { createAnimatedIcon } from '../../createAnimatedIcon.js';
+${b.motion ? "import type { Motion } from '../motion.js';\n" : ''}import { __iconData } from '../icons/${b.icon.name}.js';
+${motion}
+${animatedDoc(b)}const ${b.icon.component} = /* @__PURE__ */ createAnimatedIcon(__iconData${b.motion ? ', __motion' : ''});
+
+export default ${b.icon.component};
+`,
+    );
+  }
+  const barrel = icons.map(({ icon }) => `export { ${iconExports(icon).map((n) => `default as ${n}`).join(', ')} } from './${icon.name}.js';`);
+  write(join(src, 'generated/animated/index.ts'), GENERATED + barrel.join('\n') + '\n');
+}
+
+/** React: lucide-animated's exports, each drawing today's Lucide with lucide-animated's own animation. */
+function lucideAnimatedEntry(icons: readonly BuiltIcon[]) {
+  const src = join(ROOT, 'packages/react/src');
+  const imported = icons.filter((b) => b.lucideAnimated).sort((a, b) => a.lucideAnimated!.name.localeCompare(b.lucideAnimated!.name));
+  const lines = imported.flatMap((b) => {
+    const { name, motion } = b.lucideAnimated!;
+    return [
+      `import { __iconData as ${b.icon.component}Data } from './icons/${b.icon.name}.js';`,
+      `/** lucide-animated's \`${name}\`, drawing Lucide's current \`${b.icon.name}\`. */`,
+      `export const ${name} = /* @__PURE__ */ createLucideAnimatedIcon(${b.icon.component}Data${motion ? `, ${code(motion)}` : ''});`,
+      `export type ${name}Handle = LucideAnimatedIconHandle;`,
+    ];
+  });
+  write(
+    join(src, 'generated/lucide-animated.ts'),
+    `${GENERATED}import { createLucideAnimatedIcon } from '../lucideAnimated.js';\nimport type { LucideAnimatedIconHandle } from '../lucideAnimated.js';\n\n${lines.join('\n')}\n`,
+  );
+}
+
+/** Vanilla: each icon's animated data (its Lucide data plus motion), for xymbols/animated. */
+function vanillaAnimated(icons: readonly BuiltIcon[]) {
+  const src = join(ROOT, 'packages/vanilla/src');
+  for (const b of icons) {
+    write(
+      join(src, 'generated/animated', `${b.icon.name}.ts`),
+      `${GENERATED}import type { AnimatedIconData } from '../motion.js';
+
+${animatedDoc(b)}const ${b.icon.component}: AnimatedIconData = ${code({ ...iconData(b), ...(b.motion ? { motion: b.motion } : {}) })};
+
+export default ${b.icon.component};
+`,
+    );
+  }
+  const barrel = icons.map(({ icon }) => `export { ${plainNames(icon).map((n) => `default as ${n}`).join(', ')} } from './${icon.name}.js';`);
+  write(join(src, 'generated/animated/index.ts'), GENERATED + barrel.join('\n') + '\n');
+}
+
 // ---------------------------------------------------------------- vanilla assets
 
 /** Vanilla dist assets: SVG files, sprites, tiles and the manifest. */
-function vanillaAssets(tagsets: readonly Tagset[], built: readonly Built[], icons: readonly BuiltIcon[], versions: { version: string; lucide: string }) {
+function vanillaAssets(tagsets: readonly Tagset[], built: readonly Built[], icons: readonly BuiltIcon[], versions: Versions) {
   const dist = join(ROOT, 'packages/vanilla/dist');
   const file = (fit: string, b: Built) => `svg/${fit}/${b.glyph.tagset.id}/${b.glyph.name}.svg`;
   for (const { icon } of icons) write(join(dist, 'svg/icons', `${icon.name}.svg`), iconSvg(icon) + '\n');
@@ -288,10 +368,12 @@ function vanillaAssets(tagsets: readonly Tagset[], built: readonly Built[], icon
       'xymbols: every Lucide icon (svg/icons/) and the tagsets glyphs for standardized metadata codes. Icons are 24x24. Glyphs are 24 tall in two fits: fixed (the 24x24 square, svg/fixed/) where their content or a short form fits, and hug (as wide as the content, svg/hug/). Weights are stroke widths; maxStroke is where a drawing stops getting heavier. Plus sprites and 72x72 tiles for glyphs.',
     version: versions.version,
     lucide: versions.lucide,
+    upstreams: { una: versions.una, 'lucide-animated': versions.lucideAnimated },
+    effects: EFFECT_NAMES,
     grid: { height: 24, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', padding: 1, tile: 72 },
     weights: WEIGHTS,
     sprites: { 'sprite.svg': 'icons, and glyphs fixed (or hug where there is no fixed form)', 'sprite-hug.svg': 'icons, and glyphs hug' },
-    icons: icons.map(({ icon, maxStroke }) => ({
+    icons: icons.map(({ icon, maxStroke, motion, motionSource, lucideAnimated }) => ({
       name: icon.name,
       component: icon.component,
       ...(icon.aliases.length ? { aliases: icon.aliases.map((a) => a.name) } : {}),
@@ -299,6 +381,8 @@ function vanillaAssets(tagsets: readonly Tagset[], built: readonly Built[], icon
       svg: `svg/icons/${icon.name}.svg`,
       ...(maxStroke === undefined ? {} : { maxStroke }),
       geometry: geometry(icon.nodes),
+      ...(motion ? { animation: { source: motionSource, motion: createHash('sha256').update(JSON.stringify(motion)).digest('hex').slice(0, 12) } } : {}),
+      ...(lucideAnimated ? { lucideAnimated: lucideAnimated.name } : {}),
     })),
     tagsets: tagsets.map((t) => ({
       id: t.id,
@@ -341,14 +425,26 @@ function vanillaAssets(tagsets: readonly Tagset[], built: readonly Built[], icon
   write(join(dist, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 }
 
-export function emitAll(tagsets: readonly Tagset[], built: readonly Built[], icons: readonly BuiltIcon[], versions: { version: string; lucide: string }) {
+export interface Versions {
+  version: string;
+  lucide: string;
+  /** The UNA commit the animations come from. */
+  una: string;
+  lucideAnimated: string;
+}
+
+export function emitAll(tagsets: readonly Tagset[], built: readonly Built[], icons: readonly BuiltIcon[], versions: Versions, animateCss: string) {
   vanillaAssets(tagsets, built, icons, versions);
   vanillaGlyphs(tagsets, built);
   vanillaIcons(icons);
-  runtime(join(ROOT, 'packages/vanilla/src'));
+  vanillaAnimated(icons);
+  write(join(ROOT, 'packages/vanilla/dist/animate.css'), animateCss);
+  runtime(join(ROOT, 'packages/vanilla/src'), true);
   for (const pkg of FRAMEWORKS) {
     glyphComponents(pkg, tagsets, built);
     iconComponents(pkg, icons);
-    runtime(join(ROOT, 'packages', pkg, 'src'));
+    animatedComponents(pkg, icons);
+    runtime(join(ROOT, 'packages', pkg, 'src'), pkg !== 'react-native');
   }
+  lucideAnimatedEntry(icons);
 }

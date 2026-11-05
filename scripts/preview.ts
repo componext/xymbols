@@ -1,19 +1,22 @@
 /**
  * Write preview/index.html, the catalog (also published to GitHub Pages):
  * every Lucide icon, every tagsets glyph in both fits and as a tile, the
- * stroke alphabet, and glyphs in use, with size, weight, fit, view and theme
- * controls and search. Reads sources and lucide-static, so it works before a
- * build.
+ * stroke alphabet, glyphs in use, and the animations, with size, weight,
+ * effect, fit, view and theme controls and search. Drawings come from sources
+ * and lucide-static; the animations come from the build (the vanilla
+ * package's engine and its animated data), so without a build the icons stay
+ * still.
  *
- *   pnpm preview && open preview/index.html
+ *   pnpm build && pnpm preview && open preview/index.html
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LETTERS, SIZES, compose } from './lib/letters.ts';
 import { loadIcons, type Icon } from './lib/lucide.ts';
 import { ROOT, ROOT_ATTRS, loadGlyphs, toNodes, type Glyph, type Node, type Variant } from './lib/source.ts';
 import { tileSvg } from './lib/tiles.ts';
 import { maxStroke } from './lib/weights.ts';
+import { EFFECT_NAMES } from './runtime/motion.ts';
 import { WEIGHTS } from './runtime/weights.ts';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -77,12 +80,29 @@ const sections = tagsets
   })
   .join('\n');
 
+// The build's animated data: which icons have an animation of their own, and where it comes from.
+const dist = join(ROOT, 'packages/vanilla/dist');
+const built = existsSync(join(dist, 'manifest.json')) && existsSync(join(dist, 'generated/animate.js'));
+const manifest = built
+  ? (JSON.parse(readFileSync(join(dist, 'manifest.json'), 'utf8')) as { upstreams?: { una: string; 'lucide-animated': string }; icons: { name: string; animation?: { source: string } }[] })
+  : undefined;
+const animation = new Map((manifest?.icons ?? []).flatMap((i) => (i.animation ? [[i.name, i.animation.source] as const] : [])));
+const SOURCE = { una: 'UNA', 'lucide-animated': 'lucide-animated' } as Record<string, string>;
+
 const iconCard = (i: Icon) => {
-  const search = [i.name, ...i.aliases.map((a) => a.name), ...i.tags].join(' ');
+  const search = [i.name, ...i.aliases.map((a) => a.name), ...i.tags, ...(animation.has(i.name) ? ['animated', animation.get(i.name)!] : [])].join(' ');
   const also = i.aliases.length ? ` · also ${i.aliases.map((a) => a.name).join(', ')}` : '';
   const max = limitOf(i.nodes);
-  return `<figure class="card icon" data-search="${esc(search)}" title="${esc(`${i.component}${also}${max === undefined ? '' : ` · stops at stroke ${max}`}`)}"><div class="art">${svg({ x: 0, width: 24, nodes: i.nodes })}</div><figcaption><span>${esc(i.name)}</span></figcaption></figure>`;
+  const own = animation.get(i.name);
+  return `<figure class="card icon" data-icon="${i.name}" data-search="${esc(search)}" title="${esc(`${i.component}${also}${max === undefined ? '' : ` · stops at stroke ${max}`}${own ? ` · animated (${SOURCE[own]})` : ''}`)}"><div class="art">${svg({ x: 0, width: 24, nodes: i.nodes })}</div><figcaption><span>${esc(i.name)}</span>${own ? `<em class="tag">${SOURCE[own]}</em>` : ''}</figcaption></figure>`;
 };
+const animatedIcons = lucide.icons.filter((i) => animation.has(i.name)).sort((a, b) => (animation.get(a.name) === 'una' ? 0 : 1) - (animation.get(b.name) === 'una' ? 0 : 1));
+const animatedSection = built
+  ? `<section data-tagset="animated">
+  <header><h2>Animated</h2><p>${animatedIcons.length} icons with an animation of their own: ${animatedIcons.filter((i) => animation.get(i.name) === 'una').length} from <a href="https://github.com/unacms/UNA">UNA</a> (${manifest?.upstreams?.una.slice(0, 10)}), ${animatedIcons.filter((i) => animation.get(i.name) === 'lucide-animated').length} from <a href="https://lucide-animated.com">lucide-animated</a> ${manifest?.upstreams?.['lucide-animated']}, mapped onto Lucide's current drawings. Hover one, or <button class="play-all" aria-pressed="false">play all</button>. Every icon also takes the effects in the bar.</p></header>
+  <div class="grid icons">${animatedIcons.map(iconCard).join('\n')}</div>
+</section>`
+  : '';
 const iconsSection = `<section data-tagset="icons">
   <header><h2>Icons</h2><p>${lucide.icons.length} Lucide ${lucide.version} icons, ${lucide.icons.reduce((n, i) => n + i.aliases.length, 0)} aliases · <a href="https://lucide.dev/icons/">lucide.dev</a> · imports as in lucide-react: <code>House</code>, <code>HouseIcon</code>, <code>LucideHouse</code></p></header>
   <div class="grid icons">${lucide.icons.map(iconCard).join('\n')}</div>
@@ -202,6 +222,9 @@ figcaption code{color:var(--muted);font-size:10px}
 .use .lbl{width:130px;color:var(--muted);font-size:12px}
 svg.inline{height:1.4em;width:calc(1.4em * var(--k));vertical-align:middle}
 .hidden{display:none}
+.card.icon .tag{margin-top:2px}
+.play-all{font:inherit;font-size:12px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 8px;cursor:pointer}
+.play-all[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 @media (max-width:560px){input[type=search]{width:100%}.grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.use .lbl{width:100%}}
 </style>
 </head>
@@ -210,12 +233,14 @@ svg.inline{height:1.4em;width:calc(1.4em * var(--k));vertical-align:middle}
   <h1>xymbols <span>${lucide.icons.length} icons · ${glyphs.length} glyphs</span></h1>
   <div class="ctl">Size <div class="seg" data-var="--size" data-unit="px">${[16, 20, 24, 32, 48].map((s) => `<button aria-pressed="${s === 24}">${s}</button>`).join('')}</div></div>
   <div class="ctl">Weight <div class="seg" data-var="--w" data-unit="">${Object.entries(WEIGHTS).map(([n, w]) => `<button aria-pressed="${n === 'regular'}" value="${w}" title="${n}, stroke ${w}">${n.slice(0, 2)}</button>`).join('')}</div></div>
+  ${built ? `<div class="ctl">Effect <div class="seg" data-effect>${['auto', ...EFFECT_NAMES].map((e) => `<button aria-pressed="${e === 'auto'}" title="${e === 'auto' ? "the icon's own animation, else a wiggle" : e}">${e}</button>`).join('')}</div></div>` : ''}
   <div class="ctl">Fit <div class="seg" data-attr="data-fit">${['fixed', 'hug'].map((s) => `<button aria-pressed="${s === 'fixed'}">${s}</button>`).join('')}</div></div>
   <div class="ctl">View <div class="seg" data-attr="data-view">${['glyphs', 'tiles'].map((s) => `<button aria-pressed="${s === 'glyphs'}">${s}</button>`).join('')}</div></div>
   <div class="ctl">Theme <div class="seg" data-attr="data-theme">${['auto', 'light', 'dark'].map((s) => `<button aria-pressed="${s === 'auto'}">${s}</button>`).join('')}</div></div>
   <input type="search" placeholder="Search icons, tags, codes" aria-label="Search icons and glyphs">
 </div>
 <main>
+${animatedSection}
 <section data-tagset="weights">
   <header><h2>Weights</h2><p>Nine weights, named as in SF Symbols. Regular is Lucide's 2; a drawing whose strokes would crowd stops getting heavier (Settings at 2.97, CC at 2.43).</p></header>
   <div class="ladder">${ladder}</div>
@@ -235,6 +260,57 @@ ${sections}
   <div class="grid">${alphabet}</div>
 </section>
 </main>
+${built ? `<script type="module">
+// Animations: each icon turns into an animated one the first time the pointer or focus reaches it.
+import { animate } from './js/animate.js';
+import { animatedTree } from './js/motion.js';
+const motions = JSON.parse(await (await fetch('./motions.json')).text(), (_, v) => (v === 1e9 ? Infinity : v));
+let effect = 'auto';
+const live = new Map();
+const NS = 'http://www.w3.org/2000/svg';
+const build = ([tag, attrs, children]) => {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  for (const c of children ?? []) el.append(build(c));
+  return el;
+};
+function animated(card) {
+  if (live.has(card)) return live.get(card);
+  const svg = card.querySelector('.art svg');
+  const node = [...svg.children].map((c) => [c.tagName, Object.fromEntries([...c.attributes].map((a) => [a.name, a.value]))]);
+  const icon = { name: card.dataset.icon, node, motion: motions[card.dataset.icon] };
+  svg.replaceChildren(build(animatedTree(node, icon.motion)));
+  svg.setAttribute('data-xa', '');
+  const controller = animate(svg, icon, { trigger: 'manual' });
+  live.set(card, controller);
+  return controller;
+}
+document.addEventListener('pointerover', (e) => {
+  const card = e.target.closest?.('.card.icon');
+  if (card && !card.contains(e.relatedTarget)) animated(card).play(effect);
+});
+document.addEventListener('pointerout', (e) => {
+  const card = e.target.closest?.('.card.icon');
+  if (card && !card.contains(e.relatedTarget)) animated(card).stop();
+});
+document.querySelector('[data-effect]').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b) effect = b.textContent;
+});
+let loops = [];
+document.querySelector('.play-all')?.addEventListener('click', (e) => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(on));
+  for (const l of loops) l.destroy();
+  loops = [];
+  if (!on) return;
+  for (const card of document.querySelectorAll('[data-tagset="animated"] .card.icon')) {
+    const svg = card.querySelector('.art svg');
+    animated(card);
+    loops.push(animate(svg, { node: [], motion: motions[card.dataset.icon] }, { trigger: 'loop', effect }));
+  }
+});
+</script>` : ''}
 <script>
 for (const seg of document.querySelectorAll('.seg')) {
   seg.addEventListener('click', (e) => {
@@ -258,6 +334,17 @@ document.querySelector('input[type=search]').addEventListener('input', (e) => {
 `;
 
 const out = join(ROOT, 'preview');
-mkdirSync(out, { recursive: true });
+mkdirSync(join(out, 'js'), { recursive: true });
 writeFileSync(join(out, 'index.html'), html);
+if (built) {
+  for (const f of ['animate.js', 'motion.js', 'styles.js']) copyFileSync(join(dist, 'generated', f), join(out, 'js', f));
+  const motions: Record<string, unknown> = {};
+  for (const i of lucide.icons) {
+    if (!animation.has(i.name)) continue;
+    const text = readFileSync(join(dist, 'generated/animated', `${i.name}.js`), 'utf8');
+    const data = /=\s*(\{[\s\S]*\});\s*export default/.exec(text)?.[1];
+    if (data) motions[i.name] = (Function(`return ${data}`)() as { motion?: unknown }).motion;
+  }
+  writeFileSync(join(out, 'motions.json'), JSON.stringify(motions, (_, v) => (v === Infinity ? 1e9 : v)));
+} else console.log('preview: no build, so no animations (pnpm build first)');
 console.log(`preview: ${lucide.icons.length} icons and ${glyphs.length} glyphs → preview/index.html`);

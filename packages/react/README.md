@@ -19,4 +19,17 @@ import Bell from 'xymbols-react/icons/bell';
 
 Icons take lucide-react's props (`size`, `color`, `strokeWidth`, `absoluteStrokeWidth`, `nonScalingStroke`, any SVG attribute) plus `weight`. `LucideProvider`, `useLucideContext`, `createLucideIcon`, `Icon` and `icons` work as in lucide-react. Glyphs take `size` (the height), `fit`, `color`, `strokeWidth`, `weight`, `absoluteStrokeWidth` and `title`. Without a `title`, `aria-label` or role, everything is `aria-hidden`. React 18 or later.
 
+**Animated.** `xymbols-react/animated` has every icon, animated: its own animation (from UNA or lucide-animated) or one of ten generic effects, played on hover, on the `.group` row's hover, once when `active` turns on, on mount, in a loop, or through the ref.
+
+```tsx
+import { Bell, Menu } from 'xymbols-react/animated';
+
+<Bell />                                           // its own animation, on hover
+<Bell effect="bounce" trigger="group-hover" />
+<Menu active={open} />                             // the lines fold into an X
+ref.current?.play();                               // or startAnimation() / stopAnimation()
+```
+
+`xymbols-react/lucide-animated` is a drop-in for `lucide-animated`: `import { BellIcon } from 'xymbols-react/lucide-animated'`.
+
 See the [repository README](https://github.com/componext/xymbols#readme) for weights, the tagsets and the design rules.

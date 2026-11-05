@@ -1,6 +1,9 @@
-# Upstreams xymbols follows. The Lucide packages move together (the compat
-# tests check one version across all five), and an update that breaks nothing
-# merges and releases itself: see upstream.yml and release-upstream.yml.
+# Upstreams xymbols follows: Lucide (geometry), lucide-animated (animations,
+# with the Motion version the spring tests compare against) and UNA (its
+# animated icon specs, a submodule at upstream/una). The Lucide packages move
+# together (the compat tests check one version across all five). An update
+# that breaks nothing merges and releases itself: see upstream.yml and
+# release-upstream.yml.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -17,6 +20,10 @@ updates:
           - lucide-react
           - lucide-react-native
           - "@lucide/vue"
+      animations:
+        patterns:
+          - lucide-animated
+          - motion-dom
       tooling:
         patterns:
           - "*"
@@ -26,6 +33,16 @@ updates:
           - lucide-react
           - lucide-react-native
           - "@lucide/vue"
+          - lucide-animated
+          - motion-dom
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: gitsubmodule
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
     commit-message:
       prefix: deps
 

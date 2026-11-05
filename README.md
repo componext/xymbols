@@ -2,10 +2,11 @@
 
 [![CI](https://github.com/componext/xymbols/actions/workflows/ci.yml/badge.svg)](https://github.com/componext/xymbols/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/xymbols)](https://www.npmjs.com/package/xymbols)
 
-Every [Lucide](https://lucide.dev) icon in nine weights, plus glyphs for standardized codes (licenses, locales, part-of-speech tags, tech abbreviations, keys, math), for React, Vue, React Native and plain JS. Inspired by SF Symbols: one system of symbols that share a grid, weights and (in coming releases) fills and animations.
+Every [Lucide](https://lucide.dev) icon in nine weights and animated, plus glyphs for standardized codes (licenses, locales, part-of-speech tags, tech abbreviations, keys, math), for React, Vue, React Native and plain JS. Inspired by SF Symbols: one system of symbols that share a grid, weights, animations and (in a coming release) fills.
 
 - **A drop-in for Lucide.** Same names (`House`, `HouseIcon`, `LucideHouse`, aliases such as `Home`), same props, same markup: switching is one import line. The tests render every icon through both packages and require identical output.
 - **Weights.** `weight="bold"` on any icon or glyph, from `ultralight` to `black`. Icons whose strokes would crowd stop getting heavier where they would.
+- **Animations.** Every icon animates: 416 with an animation of their own (from [UNA](https://github.com/unacms/UNA) and [lucide-animated](https://lucide-animated.com), mapped onto Lucide's current drawings), and ten generic effects for all of them, on the web and React Native.
 - **Tagsets.** 195 glyphs for codes that arrive as data, drawn to sit beside Lucide's pictograms: `TagGlyph tagset="licenses" code="GPL-3.0-or-later"`.
 - **Keeps up.** Lucide releases weekly; Dependabot bumps it here, CI checks and reports what changed, and an update that breaks nothing merges and releases itself.
 
@@ -19,6 +20,9 @@ Browse everything in the catalog: [componext.github.io/xymbols](https://componex
 | `xymbols-vue` | `@lucide/vue`, `lucide-vue-next` | The same for Vue 3; `setXymbolsProps` (also `setLucideProps`) |
 | `xymbols-react-native` | `lucide-react-native` | The same on `react-native-svg` |
 | `xymbols` | `lucide` | Icons as Lucide's node arrays with `createIcons` and `createElement`; glyph data, `toSvg`, `replaceElements`; SVG files, sprites, tiles, `manifest.json` |
+| `xymbols-react/lucide-animated` | `lucide-animated` | Its exports (`BellIcon`, `BellIconHandle`, ...) and defaults, drawing Lucide's current icons |
+
+Each package also has an `/animated` entry: `xymbols-react/animated`, `xymbols-vue/animated`, `xymbols-react-native/animated` and `xymbols/animated`. See [Animations](#animations).
 
 ```diff
 - import { House, Bell } from 'lucide-react';
@@ -67,6 +71,32 @@ import { TagGlyph } from 'xymbols-vue/dynamic';
 ```
 
 Icons take Lucide's props (`size`, `color`, `strokeWidth`, `absoluteStrokeWidth`, `nonScalingStroke`, any SVG attribute) plus `weight`. Glyphs take `size` (the height), `fit`, `color`, `strokeWidth`, `weight`, `absoluteStrokeWidth` and `title`, and expose `meta`, `fixed` and `hug`.
+
+## Animations
+
+```tsx
+import { Bell, Menu, Settings } from 'xymbols-react/animated';
+
+<Bell />                                        // its own animation (UNA's ring) on hover
+<Bell effect="bounce" />                        // or a generic effect
+<Menu trigger="group-hover" active={open} />    // plays when its .group row is hovered; Menu → X while active
+<Settings trigger="loop" />                     // over and over
+ref.current?.play('wiggle');                    // or startAnimation() / stopAnimation()
+```
+
+```diff
+- import { BellIcon } from 'lucide-animated';
++ import { BellIcon } from 'xymbols-react/lucide-animated';
+```
+
+- **Effects.** `effect="auto"` (the default) plays the icon's own animation, else a wiggle. Every icon also takes `bounce`, `pulse`, `scale`, `wiggle`, `rotate`, `breathe`, `appear`, `disappear`, `draw-on` and `draw-off`.
+- **Triggers.** `hover` (the default on the web; keyboard focus on the link or button around the icon counts), `group-hover` (the row around it, `.group`), `active` (once, each time `active` turns on: tab bars), `mount`, `loop` and `manual`. A held motion (Settings turning 180°) holds until the hover ends, then goes back. On React Native, which has no hover, the default is `active`, and `hover` follows the `pressed` prop.
+- **Active state.** `active` fills closed shapes at 20% and changes shape where an icon says so (Menu's lines fold into an X), as UNA's icons do. `scenes={{ fill: false }}` or `{{ motion: false }}` turns either off.
+- **Reduced motion** keeps the active state and plays no movement.
+- **Same drawing.** An animated icon draws exactly the static one's shapes (the tests check every icon), so swapping one for the other moves nothing.
+- **Engines.** The web engine (React, Vue, vanilla) uses the Web Animations API with CSS for state, and no animation library. The native one uses RN `Animated`, as UNA does. Springs are solved when the packages are built (a port of Motion's, checked against it) and played as CSS `linear()` on the web and an interpolation table on native, so both play the same curve.
+- **Where animations come from.** The build reads UNA's 35 specs from the `upstream/una` submodule (only its animated-icons folder is fetched), and lucide-animated's from its installed bundle, run with React and Motion stubbed out to record what each icon does. Both are mapped onto Lucide's current nodes. Where an icon has both, UNA's wins. Of lucide-animated 1.0.5's 441 icons, 392 carry over. 25 aren't Lucide icons (brand logos and its own drawings), and the rest animate shapes Lucide no longer draws.
+- **UNA forks** keep their own specs: `createUnaIcon(spec)` turns a UNA spec object into an animated icon.
 
 ## Weights
 
@@ -171,12 +201,12 @@ The build fails on any rule a glyph breaks (wrong root attributes, style on chil
 
 Requires Node 22.18+ (scripts run as TypeScript directly) and pnpm.
 
-## Keeping up with Lucide
+## Keeping up with Lucide, lucide-animated and UNA
 
-1. **Dependabot** (`.github/dependabot.yml`) bumps the Lucide packages weekly, all five together.
-2. **CI** builds and runs the compatibility tests against the new versions. The upstream report (`upstream.yml`) comments on the pull request with what changes: icons added, redrawn, renamed or removed, and weight limits that moved.
-3. **Auto-merge.** If nothing importable disappears (Lucide keeps renamed icons as aliases), the pull request merges itself once CI passes. A removal waits for a person.
-4. **Release.** Every morning, `release-upstream.yml` checks whether everything on `main` since the last release came from Dependabot. If so, it releases: minor when icons or names were added, patch for redraws, with the report as release notes. Anything a person merged waits for a person to release it.
+1. **Dependabot** (`.github/dependabot.yml`) checks weekly: the Lucide packages (all five together), lucide-animated (with the Motion version the spring tests compare against), and UNA (the `upstream/una` submodule).
+2. **CI** builds and runs the compatibility and animation tests against the new versions. The upstream report (`upstream.yml`) comments on the pull request with what changes: icons added, redrawn, renamed or removed, weight limits that moved, and animations added, changed or dropped, by source.
+3. **Auto-merge.** If nothing importable disappears (Lucide keeps renamed icons as aliases), the pull request merges itself once CI passes. A removal waits for a person. An icon that loses its own animation still animates with the generic effects, so that isn't breaking.
+4. **Release.** Every morning, `release-upstream.yml` checks whether everything on `main` since the last release came from Dependabot. If so, it releases: minor when icons, names or animations were added, patch for redraws and changed animations, with the report as release notes. Anything a person merged waits for a person to release it.
 5. **Catalog.** `pages.yml` rebuilds the catalog on every push to `main`.
 
 ## Releasing

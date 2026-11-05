@@ -20,4 +20,10 @@ setXymbolsProps({ weight: 'light' }); // defaults for this subtree
 
 Icons take @lucide/vue's props (`size`, `color`, `stroke-width`, `absolute-stroke-width`, `non-scaling-stroke`) plus `weight`; other attributes fall through to the `<svg>`. `setLucideProps`, `useLucideProps`, `createLucideIcon`, `Icon` and `icons` work as in @lucide/vue. Glyphs take `size` (the height), `fit`, `color`, `stroke-width`, `weight`, `absolute-stroke-width` and `title`. Without a `title`, `aria-label` or role, everything is `aria-hidden`. Vue 3.3 or later.
 
+**Animated.** `xymbols-vue/animated` has every icon, animated: its own animation (from UNA or lucide-animated) or a generic effect, played on hover, on the `.group` row's hover, once when `active` turns on, on mount, in a loop, or through a template ref (`play()`, `stop()`, `startAnimation()`).
+
+```vue
+<Bell effect="bounce" trigger="group-hover" :active="unread" />
+```
+
 See the [repository README](https://github.com/componext/xymbols#readme) for weights, the tagsets and the design rules.
