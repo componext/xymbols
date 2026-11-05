@@ -152,18 +152,18 @@ Every glyph is 24 tall and comes in up to two widths, named after Figma's auto-l
 5. **Tiles inline, statics anywhere.** SVG files and sprites work in `<img>`, CSS and `<use>`. Tile ids are suffixed with the glyph id, so any number can be inlined on one page. Tiles are square, so round the corners in CSS (16px at 72px). A hug-only glyph's tile shrinks it to fit.
 6. **Codes resolve, they are not validated.** `getGlyph('licenses', 'GPL-2.0-only')` returns the GPL family glyph; versions share it (so `Apache-1.1` shows `APACHE2`). Keys follow macOS: `Meta` is `⌘`/`CMD`, `Alt` is `⌥`/`ALT`. A code nobody claims returns `undefined` (React: `fallback`, Vue: `#fallback` slot, vanilla: the placeholder stays).
 7. **The dynamic entries.** `DynamicIcon` loads one icon module when first drawn. `TagGlyph` imports all 195 glyphs (about 130KB unminified, 12KB gzipped). Import named icons and glyphs from the package root when you know them at build time; everything else tree-shakes.
-8. **Marks and credits.** Icons are Lucide's, unchanged (ISC, `LICENSE-lucide`). The CC glyphs are drawn here, not copied, but "CC" and its marks are Creative Commons trademarks: use them to indicate a CC license. The `bubble` frame is Lucide's `message-square`, `⌘` follows Lucide's `command`, and keys sit in Lucide's `square`. The letterforms follow Nunito's rounded capitals, redrawn as single strokes. SF Symbols is Apple's; xymbols borrows its ideas, not its drawings.
+8. **Marks and credits.** Icons are Lucide's, unchanged (ISC, `LICENSE-lucide`). The CC glyphs are drawn here, not copied, but "CC" and its marks are Creative Commons trademarks: use them to indicate a CC license. The `bubble` frame is Lucide's `message-square`, `⌘` follows Lucide's `command`, and keys sit in Lucide's `square`. The letterforms are squared after Lucide's own rectangles: straight sides and its 2px corners. SF Symbols is Apple's; xymbols borrows its ideas, not its drawings.
 
 ## How it is made
 
 **Icons** come from the pinned `lucide-static` (geometry, aliases, tags) and `lucide-react` (the order of each icon's aliases, which becomes its class order), byte for byte: nothing is redrawn or optimized (`scripts/lib/lucide.ts`).
 
-**Glyphs** are mostly text, set in a monoline stroke alphabet (`scripts/lib/letters.ts`): capitals, digits and arrows after Nunito's rounded geometric capitals, drawn as single 2px strokes with oval bowls. The alphabet is monospaced, characters sit 4 apart (2px of air between strokes), and it comes in two optical sizes:
+**Glyphs** are mostly text, set in a monoline stroke alphabet (`scripts/lib/letters.ts`): capitals, digits and arrows drawn as single 2px strokes in a squared style: straight sides, and bowls that are rounded rectangles with Lucide's corners (2px, as its square and keycap; 1.5 at framed size). Every character takes the same cell. Pairs are spaced optically, by the white between them rather than their nearest points, in whole pixels: two stems sit 4 apart (2px of air), and open shapes close up (L under T, 1 after F) without coming any closer than that. It comes in two optical sizes:
 
 - **Text**, for freestanding glyphs: an 8×14 cell (16 tall in ink). A pair fills the square edge to edge and sits at the visual size of a Lucide pictogram beside it.
 - **Framed**, inside a key or a circle: a 6×10 cell, the most a frame's 2px of padding leaves room for.
 
-In both, stems and bars land on whole pixels, so they stay crisp at 1×.
+In both, stems and bars land on whole pixels, so they stay crisp at 1×. The Letterforms tab in the preview shows the alternatives that were weighed.
 
 A glyph's `.json` holds its codes and, for text, `"text"` and an optional `"short"`. The build composes both fits from them; nothing generated is written back to the source. A drawn `<name>.svg` beside the JSON is the fixed form; with no `text` it is the hug form too.
 

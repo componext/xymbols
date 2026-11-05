@@ -186,8 +186,8 @@ const FAMILIES: Family[] = [
   },
   {
     id: 'squared',
-    label: 'Squared',
-    note: "Straight sides with Lucide's 2px rectangle corners, the same corners as its square and the keycap; A gets a rounded top.",
+    label: 'Squared (shipped)',
+    note: "Straight sides with Lucide's 2px rectangle corners, the same corners as its square and the keycap; A gets a rounded top. Now the stroke alphabet in the catalog, where pairs keep at least 2px of air (this page allows 1) so text takes every weight.",
     sizes: mono((w, h) => squaredLetters(w, h, w >= 8 ? 2 : 1.5)),
   },
 ];

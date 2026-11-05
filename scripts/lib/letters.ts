@@ -3,9 +3,10 @@
  * glyph can take.
  *
  * Every character is a monoline capital, digit or arrow drawn for a 2px round
- * stroke after Nunito's rounded geometric forms, with oval bowls. The alphabet
- * is monospaced (every character takes the same cell, 4 units apart: 2px of
- * air between strokes) and comes in two optical sizes:
+ * stroke in a squared style: straight sides and Lucide's rectangle corners,
+ * as in its square and keycap frames. Every character takes the same cell,
+ * and pairs are spaced optically, at most 4 units apart (2px of air between
+ * two stems; see pairGap). Two optical sizes:
  *
  * - `text`, for freestanding glyphs: an 8x14 cell (16 tall in ink). Two
  *   characters span x 2..22, filling the square edge to edge, and sit at the
@@ -24,11 +25,14 @@
  *   becomes a pill, a key's square widens. Never narrower than the square for
  *   a framed glyph; an unframed glyph can be narrower than tall.
  *
- * Characters are written in their own cell (top-left at 0,0). Only the
- * subpath moves are absolute (`M x y`); every other command is relative, so
- * placing a character means shifting its moves and nothing else.
+ * Characters are written in their own cell (top-left at 0,0) and placed by
+ * translating the whole path.
  */
 
+import svgpath from 'svgpath';
+import { samplePath, type Pt } from './spacing.ts';
+
+/** The widest gap between two characters' cells: two stems 2px of air apart. */
 export const GAP = 4;
 
 export interface Letter {
@@ -36,46 +40,71 @@ export interface Letter {
   d: string;
 }
 
-/* Text size, 8x14: the framed drawings scaled by 4/3 and 1.4, then bars that
- * landed between pixels moved onto them (A's crossbar, the P and R bowls, the
- * stems and bars of 1, 4 and 5). Bowls are ovals up to rx 4, ry 7. */
-const TEXT_GLYPHS: Readonly<Record<string, string>> = {
-  A: 'M0 14l4-14 4 14M1.2 10h5.6',
-  B: 'M0 0h4a3.333 3.5 0 0 1 0 7h-4zm0 7h4.667a3.333 3.5 0 0 1 0 7h-4.667z',
-  C: 'M7.2 2.8a4 7 0 1 0 0 8.4',
-  D: 'M0 0h2.667a5.333 7 0 0 1 0 14h-2.667z',
-  E: 'M8 0h-8v14h8M0 7h6.667',
-  F: 'M8 0h-8v14M0 7h6.667',
-  G: 'M7.2 2.8a4 7 0 1 0 .8 4.2h-3.333',
-  H: 'M0 0v14M8 0v14M0 7h8',
-  I: 'M4 0v14M1.333 0h5.334M1.333 14h5.334',
-  J: 'M8 0v8.4a4 5.6 0 0 1-8 0',
-  K: 'M0 0v14M8 0l-8 8.4M2.667 5.6l5.333 8.4',
-  L: 'M0 0v14h8',
-  M: 'M0 14v-14l4 8.4 4-8.4v14',
-  N: 'M0 14v-14l8 14v-14',
-  O: 'M4 0a4 7 0 1 0 0 14a4 7 0 1 0 0-14',
-  P: 'M0 14v-14h4a4 4 0 0 1 0 8h-4',
-  Q: 'M4 0a4 7 0 1 0 0 14a4 7 0 1 0 0-14M4.667 10.5l3.333 3.5',
-  R: 'M0 14v-14h4a4 4 0 0 1 0 8h-4M4 8l4 6',
-  S: 'M7.467 1.75a4 3.5 0 1 0-3.467 5.25a4 3.5 0 1 1-3.467 5.25',
-  T: 'M0 0h8M4 0v14',
-  U: 'M0 0v8.4a4 5.6 0 0 0 8 0v-8.4',
-  V: 'M0 0l4 14 4-14',
-  W: 'M0 0l2 14 2-8.4 2 8.4 2-14',
-  X: 'M0 0l8 14M8 0l-8 14',
-  Y: 'M0 0l4 7 4-7M4 7v7',
-  Z: 'M0 0h8l-8 14h8',
-  '0': 'M4 0a3.333 7 0 1 0 0 14a3.333 7 0 1 0 0-14',
-  '1': 'M1.5 3.5l3.5-3.5v14',
-  '2': 'M0 3.85a4 3.85 0 0 1 8 0c0 3.5-8 6.3-8 10.15h8',
-  '3': 'M.533 1.75a4 3.5 0 1 1 3.467 5.25a4 3.5 0 1 1-3.467 5.25',
-  '4': 'M5 14v-14l-5 10h8',
-  '5': 'M8 0h-7v6h3a3.667 4 0 0 1 0 8h-4',
-  '6': 'M6.667 .7c-4-2.1-6.667 1.4-6.667 9.1a4 4.2 0 1 0 8 0a4 4.2 0 1 0-8 0',
-  '7': 'M0 0h8l-5.333 14',
-  '8': 'M4 6.44a3.467 3.22 0 1 0 0-6.44a3.467 3.22 0 1 0 0 6.44a4 3.78 0 1 0 0 7.56a4 3.78 0 1 0 0-7.56',
-  '9': 'M1.333 13.3c4 2.1 6.667-1.4 6.667-9.1a4 4.2 0 1 0-8 0a4 4.2 0 1 0 8 0',
+const n = (v: number) => +v.toFixed(3);
+/** A path written with ${} numbers, each rounded. */
+const p = (s: TemplateStringsArray, ...v: (number | string)[]) => s.reduce((a, b, i) => a + b + (i < v.length ? (typeof v[i] === 'number' ? n(v[i] as number) : v[i]) : ''), '');
+
+/**
+ * The squared alphabet, drawn for a `w`x`h` cell with corners of radius `c`
+ * (Lucide's 2px rectangle corners at text size, 1.5 framed): straight sides,
+ * bowls that are rounded rectangles, terminals of C, G, S and 2 that run on 1
+ * unit past the corner. 0 is a stadium to tell it from the boxed O. Stems,
+ * bars and bowls sit on whole units; corners and diagonals land where they
+ * fall.
+ */
+function squared(w: number, h: number, c: number): Record<string, string> {
+  const m = h / 2; // middle bar
+  const bh = Math.round((h * 4) / 7); // P and R bowls
+  const d = Math.min(2 * c, w / 2); // D's rounder corners
+  const t = 1; // terminals past the corner
+  const box = (x0: number, y0: number, x1: number, y1: number, r = c) =>
+    p`M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
+  // Open on the right: C, and the start of G.
+  const open = p`M${w} ${c + t}V${c}A${c} ${c} 0 0 0 ${w - c} 0H${c}A${c} ${c} 0 0 0 0 ${c}V${h - c}A${c} ${c} 0 0 0 ${c} ${h}H${w - c}A${c} ${c} 0 0 0 ${w} ${h - c}`;
+  const bowl = p`M0 ${h}V0H${w - c}A${c} ${c} 0 0 1 ${w} ${c}V${bh - c}A${c} ${c} 0 0 1 ${w - c} ${bh}H0`;
+  const lower = Math.round(h * 0.43); // where 5 turns into its bowl
+  return {
+    A: p`M0 ${h}V${c}A${c} ${c} 0 0 1 ${c} 0H${w - c}A${c} ${c} 0 0 1 ${w} ${c}V${h}M0 ${Math.round(h * 0.55)}H${w}`,
+    B: p`M0 ${m}H${w - c}A${c} ${c} 0 0 1 ${w} ${m + c}V${h - c}A${c} ${c} 0 0 1 ${w - c} ${h}H0V0H${w - 1 - c}A${c} ${c} 0 0 1 ${w - 1} ${c}V${m - c}A${c} ${c} 0 0 1 ${w - 1 - c} ${m}`,
+    C: p`${open}V${h - c - t}`,
+    D: p`M0 0H${w - d}A${d} ${d} 0 0 1 ${w} ${d}V${h - d}A${d} ${d} 0 0 1 ${w - d} ${h}H0Z`,
+    E: p`M${w} 0H0V${h}H${w}M0 ${m}H${(5 * w) / 6}`,
+    F: p`M${w} 0H0V${h}M0 ${m}H${(5 * w) / 6}`,
+    G: p`${open}V${m}H${w / 2}`,
+    H: p`M0 0V${h}M${w} 0V${h}M0 ${m}H${w}`,
+    I: p`M${w / 2} 0V${h}M${w / 6} 0H${(5 * w) / 6}M${w / 6} ${h}H${(5 * w) / 6}`,
+    J: p`M${w} 0V${h - c}A${c} ${c} 0 0 1 ${w - c} ${h}H${c}A${c} ${c} 0 0 1 0 ${h - c}V${Math.round(h * 0.7)}`,
+    K: p`M0 0V${h}M${w} 0L0 ${h * 0.6}M${w / 3} ${h * 0.4}L${w} ${h}`,
+    L: p`M0 0V${h}H${w}`,
+    M: p`M0 ${h}V0L${w / 2} ${h * 0.6}L${w} 0V${h}`,
+    N: p`M0 ${h}V0L${w} ${h}V0`,
+    O: box(0, 0, w, h),
+    P: bowl,
+    Q: p`${box(0, 0, w, h)}M${Math.round(w * 0.6)} ${Math.round(h * 0.72)}L${w} ${h}`,
+    R: p`${bowl}M${w / 2} ${bh}L${w} ${h}`,
+    S: p`M${w} ${c + t}V${c}A${c} ${c} 0 0 0 ${w - c} 0H${c}A${c} ${c} 0 0 0 0 ${c}V${m - c}A${c} ${c} 0 0 0 ${c} ${m}H${w - c}A${c} ${c} 0 0 1 ${w} ${m + c}V${h - c}A${c} ${c} 0 0 1 ${w - c} ${h}H${c}A${c} ${c} 0 0 1 0 ${h - c}V${h - c - t}`,
+    T: p`M0 0H${w}M${w / 2} 0V${h}`,
+    U: p`M0 0V${h - c}A${c} ${c} 0 0 0 ${c} ${h}H${w - c}A${c} ${c} 0 0 0 ${w} ${h - c}V0`,
+    V: p`M0 0L${w / 2} ${h}L${w} 0`,
+    W: p`M0 0L${w / 4} ${h}L${w / 2} ${h * 0.4}L${(3 * w) / 4} ${h}L${w} 0`,
+    X: p`M0 0L${w} ${h}M${w} 0L0 ${h}`,
+    Y: p`M0 0L${w / 2} ${m}L${w} 0M${w / 2} ${m}V${h}`,
+    Z: p`M0 0H${w}L0 ${h}H${w}`,
+    '0': box(0, 0, w, h, w / 2),
+    '1': p`M1 ${Math.round(h * 0.2)}L${w / 2 + 1} 0V${h}`,
+    '2': p`M0 ${c + t}V${c}A${c} ${c} 0 0 1 ${c} 0H${w - c}A${c} ${c} 0 0 1 ${w} ${c}V${m - c}A${c} ${c} 0 0 1 ${w - c} ${m}H${c}A${c} ${c} 0 0 0 0 ${m + c}V${h}H${w}`,
+    '3': p`M0 0H${w - c}A${c} ${c} 0 0 1 ${w} ${c}V${m - c}A${c} ${c} 0 0 1 ${w - c} ${m}H${Math.round(w / 3)}M${w - c} ${m}A${c} ${c} 0 0 1 ${w} ${m + c}V${h - c}A${c} ${c} 0 0 1 ${w - c} ${h}H0`,
+    '4': p`M0 0V${Math.round(h * 0.64)}H${w}M${w - 2} 0V${h}`,
+    '5': p`M${w} 0H0V${lower}H${w - c}A${c} ${c} 0 0 1 ${w} ${lower + c}V${h - c}A${c} ${c} 0 0 1 ${w - c} ${h}H0`,
+    '6': p`M${w} 0H${c}A${c} ${c} 0 0 0 0 ${c}V${h - c}A${c} ${c} 0 0 0 ${c} ${h}H${w - c}A${c} ${c} 0 0 0 ${w} ${h - c}V${m + c}A${c} ${c} 0 0 0 ${w - c} ${m}H0`,
+    '7': p`M0 0H${w}L${Math.round(w * 0.375)} ${h}`,
+    '8': p`${box(1, 0, w - 1, m)}${box(0, m, w, h)}`,
+    '9': p`M0 ${h}H${w - c}A${c} ${c} 0 0 0 ${w} ${h - c}V${c}A${c} ${c} 0 0 0 ${w - c} 0H${c}A${c} ${c} 0 0 0 0 ${c}V${m - c}A${c} ${c} 0 0 0 ${c} ${m}H${w}`,
+  };
+}
+
+/* Symbols, straight strokes in each cell. */
+const TEXT_SYMBOLS: Readonly<Record<string, string>> = {
   '.': 'M4 14h.01',
   '-': 'M1.333 7h5.334',
   '+': 'M0 7h8M4 3v8',
@@ -88,52 +117,11 @@ const TEXT_GLYPHS: Readonly<Record<string, string>> = {
   '↘': 'M0 0l8 14M8 9v5h-5',
 };
 
-/* Framed size, 6x10. Bowls are ovals (rx 3, up to ry 5): Nunito's round forms
- * stretched to the cell. Terminals are round caps; joins are round. */
-const FRAMED_GLYPHS: Readonly<Record<string, string>> = {
-  A: 'M0 10l3-10 3 10M1 7h4',
-  B: 'M0 0h3a2.5 2.5 0 0 1 0 5h-3zm0 5h3.5a2.5 2.5 0 0 1 0 5h-3.5z',
-  C: 'M5.4 2a3 5 0 1 0 0 6',
-  D: 'M0 0h2a4 5 0 0 1 0 10h-2z',
-  E: 'M6 0h-6v10h6M0 5h5',
-  F: 'M6 0h-6v10M0 5h5',
-  G: 'M5.4 2a3 5 0 1 0 .6 3h-2.5',
-  H: 'M0 0v10M6 0v10M0 5h6',
-  I: 'M3 0v10M1 0h4M1 10h4',
-  J: 'M6 0v6a3 4 0 0 1-6 0',
-  K: 'M0 0v10M6 0l-6 6M2 4l4 6',
-  L: 'M0 0v10h6',
-  M: 'M0 10v-10l3 6 3-6v10',
-  N: 'M0 10v-10l6 10v-10',
-  O: 'M3 0a3 5 0 1 0 0 10a3 5 0 1 0 0-10',
-  P: 'M0 10v-10h3a3 3 0 0 1 0 6h-3',
-  Q: 'M3 0a3 5 0 1 0 0 10a3 5 0 1 0 0-10M3.5 7.5l2.5 2.5',
-  R: 'M0 10v-10h3a3 3 0 0 1 0 6h-3M3 6l3 4',
-  S: 'M5.6 1.25a3 2.5 0 1 0-2.6 3.75a3 2.5 0 1 1-2.6 3.75',
-  T: 'M0 0h6M3 0v10',
-  U: 'M0 0v6a3 4 0 0 0 6 0v-6',
-  V: 'M0 0l3 10 3-10',
-  W: 'M0 0l1.5 10 1.5-6 1.5 6 1.5-10',
-  X: 'M0 0l6 10M6 0l-6 10',
-  Y: 'M0 0l3 5 3-5M3 5v5',
-  Z: 'M0 0h6l-6 10h6',
-  // Zero is narrower than O (rx 2.5), as in Nunito.
-  '0': 'M3 0a2.5 5 0 1 0 0 10a2.5 5 0 1 0 0-10',
-  '1': 'M1 2.5l3-2.5v10',
-  '2': 'M0 2.75a3 2.75 0 0 1 6 0c0 2.5-6 4.5-6 7.25h6',
-  '3': 'M.4 1.25a3 2.5 0 1 1 2.6 3.75a3 2.5 0 1 1-2.6 3.75',
-  '4': 'M4 10v-10l-4 7h6',
-  '5': 'M6 0h-5.5v4.5h2.5a2.75 2.75 0 0 1 0 5.5h-3',
-  '6': 'M5 .5c-3-1.5-5 1-5 6.5a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
-  '7': 'M0 0h6l-4 10',
-  '8': 'M3 4.6a2.6 2.3 0 1 0 0-4.6a2.6 2.3 0 1 0 0 4.6a3 2.7 0 1 0 0 5.4a3 2.7 0 1 0 0-5.4',
-  '9': 'M1 9.5c3 1.5 5-1 5-6.5a3 3 0 1 0-6 0a3 3 0 1 0 6 0',
-  // h.01 rather than h0: a zero-length segment is dropped by optimizers.
+const FRAMED_SYMBOLS: Readonly<Record<string, string>> = {
   '.': 'M3 10h.01',
   '-': 'M1 5h4',
   '+': 'M0 5h6M3 2v6',
   '/': 'M0 10l6-10',
-  // Arrows, for arrow keys and short forms: heads have 3-unit arms.
   '↑': 'M3 10v-10M0 3l3-3 3 3',
   '↓': 'M3 0v10M0 7l3 3 3-3',
   '←': 'M6 5h-6M3 2l-3 3 3 3',
@@ -141,6 +129,10 @@ const FRAMED_GLYPHS: Readonly<Record<string, string>> = {
   '↖': 'M6 10l-6-10M0 4v-4h4',
   '↘': 'M0 0l6 10M6 6v4h-4',
 };
+
+/* Text size, 8x14, corners 2 (Lucide's rectangles); framed, 6x10, corners 1.5. */
+const TEXT_GLYPHS: Readonly<Record<string, string>> = { ...squared(8, 14, 2), ...TEXT_SYMBOLS };
+const FRAMED_GLYPHS: Readonly<Record<string, string>> = { ...squared(6, 10, 1.5), ...FRAMED_SYMBOLS };
 
 export type Size = 'text' | 'framed';
 
@@ -168,7 +160,60 @@ export const LETTERS = SIZES.text.letters;
 
 /** Shift a letter path: every absolute move gets the offset, nothing else. */
 export function place(d: string, dx: number, dy: number): string {
-  return d.replace(/M(-?\d*\.?\d+)[ ,](-?\d*\.?\d+)/g, (_, x: string, y: string) => `M${+(+x + dx).toFixed(3)} ${+(+y + dy).toFixed(3)}`);
+  return svgpath(d).translate(dx, dy).round(3).toString();
+}
+
+/*
+ * Spacing. Characters are spaced by area, as type designers do (HT
+ * Letterspacer, Tracy's method), not by their nearest points: the white
+ * between two characters, row by row across the cap height and counted only
+ * so deep into an open side, matches what two stems leave at GAP. Open shapes
+ * close up (the foot of L under the arm of T, 1 after anything), yet no two
+ * characters come closer than the 2px two stems keep, so text takes every
+ * weight its letters do. Gaps are whole units, never wider than GAP.
+ */
+const STEMS = GAP - 2; // white between two stems at GAP: 2px of air
+const DEPTH = 4; // how far into an open side white counts
+const MIN_AIR = 2; // as two stems at GAP: closer would cap the heavier weights
+const sampled = new Map<string, Pt[]>();
+const pointsOf = (d: string) => {
+  if (!sampled.has(d)) sampled.set(d, samplePath(d, 0.25).flat());
+  return sampled.get(d)!;
+};
+const gaps = new Map<string, number>();
+
+/** The gap between two characters' cells at a size, in whole units (GAP for two stems). */
+export function pairGap(a: string, b: string, size: Size): number {
+  const key = `${size}${a}${b}`;
+  const known = gaps.get(key);
+  if (known !== undefined) return known;
+  const { cap, letters } = SIZES[size];
+  const la = letters[a]!;
+  const pa = pointsOf(la.d);
+  const pb = pointsOf(letters[b]!.d);
+  const rows = Array.from({ length: cap * 2 + 1 }, (_, i) => i / 2);
+  const side = (pts: Pt[], y: number, f: (...v: number[]) => number) => {
+    const xs = pts.filter(([, py]) => Math.abs(py - y) < 1).map(([px]) => px);
+    return xs.length ? f(...xs) : NaN;
+  };
+  const right = rows.map((y) => side(pa, y, Math.max));
+  const left = rows.map((y) => side(pb, y, Math.min));
+  const white = (dx: number) =>
+    rows.reduce((sum, _, i) => sum + (Number.isNaN(right[i]!) || Number.isNaN(left[i]!) ? DEPTH : Math.max(0, Math.min(DEPTH, dx + left[i]! - right[i]! - 2))), 0) / rows.length;
+  const nearest = (dx: number) => {
+    let best = Infinity;
+    for (const [ax, ay] of pa) for (const [bx, by] of pb) best = Math.min(best, (bx + dx - ax) ** 2 + (by - ay) ** 2);
+    return Math.sqrt(best) - 2;
+  };
+  let g = GAP;
+  for (let t = -Math.floor(la.width / 2); t < GAP; t++) {
+    if (white(la.width + t) >= STEMS - 1e-6 && nearest(la.width + t) >= MIN_AIR - 0.01) {
+      g = t;
+      break;
+    }
+  }
+  gaps.set(key, g);
+  return g;
 }
 
 export type Fit = 'fixed' | 'hug';
@@ -265,7 +310,7 @@ export function textWidth(text: string, size: Size = 'text'): number {
     if (!letter) throw new Error(`no letter "${c}" in the stroke alphabet`);
     return letter.width;
   });
-  return widths.reduce((a, b) => a + b, 0) + GAP * (chars.length - 1);
+  return widths.reduce((a, b) => a + b, 0) + chars.slice(1).reduce((sum, c, i) => sum + pairGap(chars[i]!, c, size), 0);
 }
 
 /** A frame's elements for a variant `width` wide (24 for fixed). */
@@ -281,10 +326,11 @@ export function fitsFixed(text: string, frame: Frame): boolean {
 
 function letters(text: string, x0: number, top: number, size: Size): Element[] {
   let x = x0;
-  return [...text].map((c) => {
+  const chars = [...text];
+  return chars.map((c, i) => {
     const letter = SIZES[size].letters[c]!;
     const el: Element = { tag: 'path', attrs: { d: place(letter.d, x, top) } };
-    x += letter.width + GAP;
+    if (i + 1 < chars.length) x += letter.width + pairGap(c, chars[i + 1]!, size);
     return el;
   });
 }
