@@ -1518,7 +1518,7 @@ snapshots:
   '@react-native/codegen@0.88.1(@babel/core@7.29.13)':
     dependencies:
       '@babel/core': 7.29.13
-      '@babel/parser': 7.29.9
+      '@babel/parser': 7.29.13
       flow-parser: 0.327.0
       invariant: 2.2.4
       nullthrows: 1.1.1
@@ -2208,7 +2208,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.13
       '@babel/traverse': 7.29.13
-      '@babel/types': 7.29.8
+      '@babel/types': 7.29.11
       flow-enums-runtime: 0.0.6
       invariant: 2.2.4
       metro-symbolicate: 0.87.3
@@ -2244,8 +2244,8 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.13
       '@babel/generator': 7.29.13
-      '@babel/parser': 7.29.9
-      '@babel/types': 7.29.8
+      '@babel/parser': 7.29.13
+      '@babel/types': 7.29.11
       '@jridgewell/sourcemap-codec': 1.6.0
       flow-enums-runtime: 0.0.6
       metro: 0.87.3
@@ -2266,10 +2266,10 @@ snapshots:
       '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.13
       '@babel/generator': 7.29.13
-      '@babel/parser': 7.29.9
+      '@babel/parser': 7.29.13
       '@babel/template': 7.29.7
       '@babel/traverse': 7.29.13
-      '@babel/types': 7.29.8
+      '@babel/types': 7.29.11
       accepts: 2.0.0
       connect: 3.7.0
       debug: 4.4.3

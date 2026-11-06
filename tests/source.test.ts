@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LETTERS, SIZES, compose, frameElements, textWidth } from '../scripts/lib/letters.ts';
+import { LETTERS, SIZES, compose, frameElements, pairGap, textWidth } from '../scripts/lib/letters.ts';
 import { bboxAll, lintNodes, lintSvg, loadGlyphs, sourceSvg, toNodes } from '../scripts/lib/source.ts';
 import { normalizeCode } from '../scripts/runtime/resolve.ts';
 import { spacingProblems } from '../scripts/lib/spacing.ts';
@@ -42,10 +42,10 @@ test('fixed is the 24px square; hug is 24 tall and only as wide as its content',
   }
   assert.equal(glyph('locale-en').hug.width, 24, 'a pair of text-size characters fills the square');
   assert.equal(glyph('license-apache').hug.width, 84);
-  assert.equal(glyph('license-mit').hug.width, 36);
+  assert.equal(glyph('license-mit').hug.width, 34, 'I and T close up: optical spacing');
   assert.equal(glyph('pos-x').hug.width, 12, 'unframed hug can be narrower than tall');
-  assert.equal(glyph('key-shift').hug.width, 60);
-  assert.equal(glyph('key-f1').hug.width, 30);
+  assert.equal(glyph('key-shift').hug.width, 58);
+  assert.equal(glyph('key-f1').hug.width, 29, '1 tucks in after F');
   assert.equal(glyph('key-k').hug.width, 24);
   assert.deepEqual([glyph('math-sum').hug.x, glyph('math-sum').hug.width], [4, 16], 'drawn unframed glyphs crop to their ink');
 });
@@ -64,12 +64,22 @@ test('the square holds two characters; longer codes use a short form or are hug-
   }
 });
 
+test('pairs are spaced optically, in whole units: open shapes close up, never closer than two stems', () => {
+  const gaps = Object.fromEntries(['HH', 'OO', 'EN', 'LT', 'LY', 'F1', 'IT'].map((p) => [p, pairGap(p[0]!, p[1]!, 'framed')]));
+  assert.deepEqual(gaps, { HH: 4, OO: 4, EN: 4, LT: 1, LY: 1, F1: 3, IT: 3 });
+  for (const a of Object.keys(LETTERS)) for (const b of Object.keys(LETTERS)) for (const size of ['text', 'framed'] as const) {
+    const g = pairGap(a, b, size);
+    assert.ok(Number.isInteger(g) && g <= 4, `${a}${b} ${size}: ${g}`);
+  }
+  assert.equal(textWidth('ALT', 'framed'), 23, 'ALT: L and T close up by 3');
+});
+
 test('frames stretch when hugging', () => {
   assert.equal(compose('C', 'circle', 'hug').elements[0]!.tag, 'circle', 'a circle stays a circle while it fits');
   assert.match(compose('CC0', 'circle', 'hug').elements[0]!.attrs.d!, /^M12 2h\d+a10 10/, 'and becomes a pill when it does not');
   assert.equal(compose('E', 'bubble', 'hug').width, 24);
-  assert.equal(compose('EN', 'none', 'fixed').elements.map((e) => e.attrs.d).join(' '), 'M10 5h-8v14h8M2 12h6.667 M14 19v-14l8 14v-14', 'a text-size pair spans x 2..22, y 5..19');
-  assert.equal(compose('K', 'keycap', 'fixed').elements[1]!.attrs.d, 'M9 7v10M15 7l-6 6M11 11l4 6', 'a key sets the framed size, y 7..17');
+  assert.equal(compose('EN', 'none', 'fixed').elements.map((e) => e.attrs.d).join(' '), 'M10 5H2V19H10M2 12H8.667 M14 19V5L22 19V5', 'a text-size pair spans x 2..22, y 5..19');
+  assert.equal(compose('K', 'keycap', 'fixed').elements[1]!.attrs.d, 'M9 7V17M15 7L9 13M11 11L15 17', 'a key sets the framed size, y 7..17');
   assert.equal(compose('ENGLISH', 'bubble', 'hug').width, textWidth('ENGLISH', 'framed') + 12);
   assert.equal(compose('BACKSPACE', 'keycap', 'hug').elements[0]!.attrs.width, String(textWidth('BACKSPACE', 'framed') + 8));
   assert.throws(() => compose('APACHE2', 'none', 'fixed'), /fixed none glyph fits 20/);

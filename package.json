@@ -10,7 +10,7 @@
   "scripts": {
     "build": "node scripts/build.ts && pnpm run build:packages",
     "build:packages": "tsc -b packages/vanilla packages/react packages/vue packages/react-native",
-    "preview": "node scripts/preview.ts",
+    "preview": "node scripts/preview.ts && node scripts/letterforms.ts",
     "report": "node scripts/report.ts",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json",
