@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@lucide/vue':
-        specifier: 1.69.0
-        version: 1.69.0(vue@3.5.44(typescript@7.0.2))
+        specifier: 1.70.0
+        version: 1.70.0(vue@3.5.44(typescript@7.0.2))
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -24,20 +24,20 @@ importers:
         specifier: ^0.18.15
         version: 0.18.15
       lucide:
-        specifier: 1.69.0
-        version: 1.69.0
+        specifier: 1.70.0
+        version: 1.70.0
       lucide-animated:
         specifier: 1.0.5
         version: 1.0.5(motion@14.9.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       lucide-react:
-        specifier: 1.69.0
-        version: 1.69.0(@types/react@19.3.0)(react@19.3.1)
+        specifier: 1.70.0
+        version: 1.70.0(@types/react@19.3.0)(react@19.3.1)
       lucide-react-native:
-        specifier: 1.69.0
-        version: 1.69.0(@types/react@19.3.0)(react-native-svg@15.16.0(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+        specifier: 1.70.0
+        version: 1.70.0(@types/react@19.3.0)(react-native-svg@15.16.0(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
       lucide-static:
-        specifier: 1.69.0
-        version: 1.69.0
+        specifier: 1.70.0
+        version: 1.70.0
       motion-dom:
         specifier: 14.9.1
         version: 14.9.1
@@ -228,8 +228,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lucide/vue@1.69.0':
-    resolution: {integrity: sha512-uxR2FtureNe37HOQk/e92CZjlTjXVuNiYlD60Mgns0rmbs0wqDnHDgZPUooP6nvmFn/v7Ie6dKRKPzgR6HW5Tw==}
+  '@lucide/vue@1.70.0':
+    resolution: {integrity: sha512-kutUu3oEtfQnyaP6hh76ShG2dxa8PiL6uY3rk3DqclQe0Vd2FtPlnclezR0XMQtlFMPiEaCOXDSuhehFHW5ErQ==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -895,8 +895,8 @@ packages:
       motion: '>=11.0.0'
       react: '>=18.0.0'
 
-  lucide-react-native@1.69.0:
-    resolution: {integrity: sha512-nsDx6DzHOtE4k5i4lT9xP5KaYfswZ5iv9M1v2WgB/eAQH1QAJHdFb42EdU6BV2p2SY30GwDQ53w8XnlMF/5iew==}
+  lucide-react-native@1.70.0:
+    resolution: {integrity: sha512-bMzx3uFYTeylYdV9PNAzwfHxzzWEKP8FCiNcTTMwA4LsYMoRbtH2DiIjMHFuFCFXlVWumQjBNFG7/Stssn7Z7A==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -906,8 +906,8 @@ packages:
       '@types/react':
         optional: true
 
-  lucide-react@1.69.0:
-    resolution: {integrity: sha512-UTFECm4yEgkgMN0kfLuxWcmlk+4u02Jrqehgk3ZXRx/Ud68OpP7hjkp67bvkBHmIpMaZCIveF1QDYeupO7XmYQ==}
+  lucide-react@1.70.0:
+    resolution: {integrity: sha512-gCTPPN1MlQUBtUgdsUv+0CAUj+X8hifRUiRBw4E5v7lvDIOIpx0EZezdGQMSimS8pKA6esvullJub4GYr0mCHA==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -915,11 +915,11 @@ packages:
       '@types/react':
         optional: true
 
-  lucide-static@1.69.0:
-    resolution: {integrity: sha512-n51UItv/qDzvu/UQixn0eSkp3hXppIJg0sRvtltb+rEO0XH2tyqFmtLsaUWu3SiAD0/7NHj/LH0eJlJJL5F4Ew==}
+  lucide-static@1.70.0:
+    resolution: {integrity: sha512-A9UgY98g94IuHQY7rl7/AFwHX7T1qNpzryim+Kw5CGhdV2STobtBY+ib/Z44ohyqXEJB88gvXFAeJ87uOOHKLw==}
 
-  lucide@1.69.0:
-    resolution: {integrity: sha512-0i7rhzoeiE7rAB6w0Jb/2Gb2qlC6xezen4wStLEY8thp+nhGef1iM7Ulh0YfGkPjp02gY/D88UWYDg3uMsat4A==}
+  lucide@1.70.0:
+    resolution: {integrity: sha512-LxPqUjt8e5PT7JuvmnKc8ECAqgkbnLG3hIi/FV2JpqWdPWLbLCoI5P3jje/Lq84uNU2kCpe2webgyFFJJ9zPAA==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1509,7 +1509,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@lucide/vue@1.69.0(vue@3.5.44(typescript@7.0.2))':
+  '@lucide/vue@1.70.0(vue@3.5.44(typescript@7.0.2))':
     dependencies:
       vue: 3.5.44(typescript@7.0.2)
 
@@ -2104,7 +2104,7 @@ snapshots:
       motion: 14.9.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
 
-  lucide-react-native@1.69.0(@types/react@19.3.0)(react-native-svg@15.16.0(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1):
+  lucide-react-native@1.70.0(@types/react@19.3.0)(react-native-svg@15.16.0(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(react-native@0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-native: 0.88.1(@babel/core@7.29.13)(@types/react@19.3.0)(react@19.3.1)
@@ -2112,15 +2112,15 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  lucide-react@1.69.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.70.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
       '@types/react': 19.3.0
 
-  lucide-static@1.69.0: {}
+  lucide-static@1.70.0: {}
 
-  lucide@1.69.0: {}
+  lucide@1.70.0: {}
 
   magic-string@0.30.21:
     dependencies:
