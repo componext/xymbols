@@ -276,6 +276,8 @@ export function animate(svg: SVGSVGElement, icon: AnimatedIconData, options: Ani
       const rising = next && !active;
       active = next;
       svg.toggleAttribute('data-active', next);
+      // An icon that holds still while active (UNA's Menu X) drops a motion still playing, as UNA's CSS does.
+      if (rising && icon.motion?.still) cancelAll();
       if (rising && triggers.has('active')) once();
     },
     destroy() {

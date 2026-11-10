@@ -242,6 +242,19 @@ test('triggers: active plays once on the rising edge, never on mount; reduced mo
   }
 });
 
+test('an icon still while active stops a motion in flight when it turns active, as UNA\'s Menu does', () => {
+  const { document, calls } = page();
+  const { controller } = vanilla.createAnimatedElement(vanilla.Menu, { trigger: 'manual' }, document as unknown as Document);
+  controller.play();
+  assert.equal(calls.length, 3, 'three lines lift, staggered');
+  assert.deepEqual(calls.map((c) => c.options.delay), [0, 50, 100]);
+  controller.setActive(true);
+  assert.ok(calls.every((c) => c.cancelled), 'the lift stops as the lines fold');
+  calls.length = 0;
+  controller.play();
+  assert.equal(calls.length, 0, 'and none plays while open');
+});
+
 test('generic effects and the timing arithmetic', () => {
   assert.deepEqual(Object.keys(EFFECTS), ['bounce', 'pulse', 'scale', 'wiggle', 'rotate', 'breathe', 'appear', 'disappear', 'draw-on', 'draw-off']);
   const t: Track = { part: 'all', prop: 'y', values: [0, -2], ms: 100, ease: 'linear', repeat: 1, alternate: true, delay: 50 };
