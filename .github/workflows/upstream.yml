@@ -53,7 +53,7 @@ jobs:
       - name: Metadata
         id: meta
         if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       - name: Merge an upstream update that breaks nothing
         if: >-
