@@ -16,7 +16,7 @@
  * losing its own animation isn't: it still animates, with the generic effects.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -60,8 +60,10 @@ const { values } = parseArgs({ options: { base: { type: 'string' }, markdown: { 
 function publishedManifest(): Manifest | null {
   const dir = mkdtempSync(join(tmpdir(), 'xymbols-report-'));
   try {
-    const out = execFileSync('npm', ['pack', 'xymbols@latest', '--json', '--pack-destination', dir], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    const [{ filename }] = JSON.parse(out) as [{ filename: string }];
+    // No --json: it lists every file in the tarball, which outgrows execFileSync's buffer. The tarball is all dir holds.
+    execFileSync('npm', ['pack', 'xymbols@latest', '--pack-destination', dir], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'pipe'] });
+    const filename = readdirSync(dir).find((f) => f.endsWith('.tgz'));
+    if (!filename) throw new Error(`npm pack xymbols@latest left no tarball in ${dir}`);
     execFileSync('tar', ['-xzf', join(dir, filename), '-C', dir, 'package/dist/manifest.json']);
     return JSON.parse(readFileSync(join(dir, 'package/dist/manifest.json'), 'utf8')) as Manifest;
   } catch (e) {
