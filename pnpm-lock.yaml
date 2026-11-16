@@ -39,8 +39,8 @@ importers:
         specifier: 1.72.0
         version: 1.72.0
       motion-dom:
-        specifier: 14.9.1
-        version: 14.9.1
+        specifier: 14.13.0
+        version: 14.13.0
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -996,6 +996,9 @@ packages:
     resolution: {integrity: sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==}
     engines: {node: '>=4'}
     hasBin: true
+
+  motion-dom@14.13.0:
+    resolution: {integrity: sha512-nWrB6Psw7mFTBNL9r5hw9nm/a5+21WZ1LymOml/V2b43LdiIDO1oi+oBMSR3bcyuzEQKJoaa+t5qnsCWYhcNvA==}
 
   motion-dom@14.9.1:
     resolution: {integrity: sha512-2eCCGXH2Yv09lM8GHK3TdfChrcvHxzVY19LD9VraoHEaQl5+PuGnTNnmJaBAR+5MdxUVdsLFXygFJjR9RwRSxw==}
@@ -2287,6 +2290,10 @@ snapshots:
       mime-db: 1.54.0
 
   mime@1.6.0: {}
+
+  motion-dom@14.13.0:
+    dependencies:
+      motion-utils: 14.7.0
 
   motion-dom@14.9.1:
     dependencies:
